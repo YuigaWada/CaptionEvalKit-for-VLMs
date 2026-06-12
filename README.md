@@ -1,6 +1,6 @@
 # CaptionEvalKit-for-VLMs
 
-<img width="1272" height="262" alt="logo" src="https://github.com/user-attachments/assets/16dadf6f-b1ee-4c5c-bf1e-51067e728edc" />
+<img width="1272" height="262" alt="logo" src="https://github.com/user-attachments/assets/504893fc-3bb2-40fd-9c84-835a0d04d055" />
 
 Reproducible, all-in-one image captioning evaluation for VLMs.
 
