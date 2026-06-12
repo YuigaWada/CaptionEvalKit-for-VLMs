@@ -4,8 +4,12 @@
 
 Reproducible, all-in-one image captioning evaluation for VLMs.
 
-* **For metric developers:** Evaluate metrics and reproduce reported results with <u>a single command</u>.
-* **For VLM developers:** Score VLM-generated captions using a comprehensive set of established captioning metrics.
+* **For metric developers:**
+  * 🤔 Need a reliable way to reproduce Kendall's tau for captioning metrics?
+  * 😄 Evaluate metrics and reproduce reported results with *a single command*!
+* **For VLM developers:**
+  * 🤔 Tired of preparing separate dependency environments for each metric?
+  * 😄 Score VLM-generated captions using a comprehensive set of established captioning metrics.
 
 CaptionEvalKit currently supports:
 * **LLM-free metrics:** Polos, CLIPScore, PAC-S, RefCLIPScore, RefPAC-S, and more
