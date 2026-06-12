@@ -22,3 +22,7 @@
 	path = metrics/upstreams/fleur
 	url = https://github.com/Yebin46/FLEUR.git
 	ignore = dirty
+[submodule "jaspice"]
+	path = metrics/upstreams/jaspice
+	url = https://github.com/keio-smilab23/JaSPICE.git
+	ignore = untracked

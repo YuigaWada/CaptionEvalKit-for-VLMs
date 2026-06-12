@@ -28,6 +28,7 @@ DEFAULT_SCORE_KEYS = {
     "meteor": "METEOR",
     "cider": "CIDEr",
     "spice": "SPICE",
+    "jaspice": "JaSPICE",
     "clipscore": "CLIPScore",
     "clipscore-vitl": "CLIPScore",
     "clipscoreavg": "CLIPScoreavg",

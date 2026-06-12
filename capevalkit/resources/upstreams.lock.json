@@ -25,6 +25,17 @@
       "url": "https://github.com/Yebin46/FLEUR.git",
       "uv_project": "metrics/upstreams/fleur"
     },
+    "jaspice": {
+      "overlays": [
+        "overlays/metrics/upstreams/jaspice/pyproject.toml",
+        "overlays/metrics/upstreams/jaspice/uv.toml"
+      ],
+      "path": "metrics/upstreams/jaspice",
+      "rev": "19da1a8ce2bc40bd54ffd44e9758890a872a5171",
+      "source": "git",
+      "url": "https://github.com/keio-smilab23/JaSPICE.git",
+      "uv_project": "metrics/upstreams/jaspice"
+    },
     "pacscore": {
       "overlays": [
         "overlays/metrics/upstreams/pacscore/pyproject.toml",

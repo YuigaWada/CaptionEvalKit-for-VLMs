@@ -14,7 +14,7 @@ Reproducible, all-in-one image captioning evaluation for VLMs.
 CaptionEvalKit currently supports:
 * **LLM-free metrics:** Polos, CLIPScore, PAC-S, RefCLIPScore, RefPAC-S, and more
 * **LLM-as-a-Judge metrics:** FLEUR, RefFLEUR, and VELA
-* **Classic captioning metrics:** BLEU, ROUGE-L, METEOR, CIDEr, and SPICE
+* **Classic captioning metrics:** BLEU, ROUGE-L, METEOR, CIDEr, SPICE, and JaSPICE
 * **Benchmarks:** Composite, Flickr8k-Ex, Flickr8k-CF, Polaris, Nebula, and LongCap-Arena
 
 <img width="850" height="178" alt="Screenshot 2026-06-13 at 2 23 30" src="https://github.com/user-attachments/assets/eea86fbb-d9ae-4fce-98fd-29f2510dd2bb" />
@@ -38,7 +38,7 @@ CaptionEvalKit currently supports:
 
 ## Install
 
-Requirements: Python 3.10+, `git`, and `uv`. Java is also required for METEOR/SPICE through `pycocoevalcap`.
+Requirements: Python 3.10+, `git`, and `uv`. Java is also required for METEOR/SPICE through `pycocoevalcap`. JaSPICE requires Docker; CaptionEvalKit builds and starts the local JaSPICE server automatically when needed.
 
 From PyPI or a built wheel:
 
@@ -365,6 +365,7 @@ Legend: `✅` reproduced, `⚠️` not reproduced, `-` no default target. For Lo
 | `meteor` | `pycocoevalcap` | Java METEOR through upstream |
 | `cider` | `pycocoevalcap` | CIDEr |
 | `spice` | `pycocoevalcap` | SPICE |
+| `jaspice` | JaSPICE | Japanese SPICE-style metric; starts the JaSPICE Docker server automatically |
 | `clipscore` | CLIPScore | image-caption CLIPScore |
 | `refclipscore` | CLIPScore | reference-aware CLIPScore |
 | `pacscore` | PACScore | PAC-S |

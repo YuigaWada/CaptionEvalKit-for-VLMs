@@ -517,7 +517,7 @@ class ArchitectureTest(unittest.TestCase):
             self.assertFalse((root / "metrics" / "upstreams" / "skipped" / "uv.toml").exists())
 
     def test_python310_upstream_overlays_include_tomli(self) -> None:
-        upstreams = ["pycocoevalcap", "polos", "fleur", "vela"]
+        upstreams = ["pycocoevalcap", "polos", "fleur", "vela", "jaspice"]
         for upstream in upstreams:
             path = Path("overlays") / "metrics" / "upstreams" / upstream / "pyproject.toml"
             dependencies = tomllib.loads(path.read_text())["project"]["dependencies"]
@@ -552,6 +552,7 @@ class ArchitectureTest(unittest.TestCase):
             "fleur": "metrics/upstreams/fleur",
             "reffleur": "metrics/upstreams/fleur",
             "vela": "metrics/upstreams/vela",
+            "jaspice": "metrics/upstreams/jaspice",
         }
         for metric, repo in expected_repos.items():
             self.assertEqual(manifests[metric].repo_dir, repo)
@@ -1054,6 +1055,121 @@ class ArchitectureTest(unittest.TestCase):
 
     def test_bleu_benchmark_defaults_to_bleu_4(self) -> None:
         self.assertEqual(DEFAULT_SCORE_KEYS["bleu"], "BLEU-4")
+
+    def test_jaspice_benchmark_defaults_to_jaspice_score(self) -> None:
+        self.assertEqual(DEFAULT_SCORE_KEYS["jaspice"], "JaSPICE")
+
+    def test_jaspice_metric_posts_jsonl_scores_to_server(self) -> None:
+        from capevalkit.metrics.jaspice_metric import compute_jaspice
+
+        requests: list[object] = []
+
+        class FakeResponse:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc, traceback) -> None:
+                return None
+
+            def read(self) -> bytes:
+                return b"[0.1, 0.3]"
+
+        def fake_urlopen(request, timeout):
+            requests.append((request, timeout))
+            return FakeResponse()
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            predictions = root / "predictions.jsonl"
+            references = root / "references.jsonl"
+            predictions.write_text(
+                '{"id": "b", "caption": "candidate b"}\n'
+                '{"id": "a", "caption": "candidate a"}\n'
+            )
+            references.write_text(
+                '{"id": "a", "references": ["ref a"]}\n'
+                '{"id": "b", "references": ["ref b1", "ref b2"]}\n'
+            )
+
+            with patch("urllib.request.urlopen", fake_urlopen):
+                result = compute_jaspice(
+                    str(predictions),
+                    str(references),
+                    batch_size=4,
+                    server_url="http://localhost:2115",
+                    timeout=3,
+                    auto_docker=False,
+                )
+
+        request, timeout = requests[0]
+        payload = json.loads(request.data.decode("utf-8"))
+        self.assertEqual(timeout, 3)
+        self.assertEqual(payload["references"], [["refa"], ["refb1", "refb2"]])
+        self.assertEqual(payload["candidates"], ["candidatea", "candidateb"])
+        self.assertEqual(payload["batch_size"], 4)
+        self.assertEqual(result["JaSPICE"]["score"], 0.2)
+        self.assertEqual(result["JaSPICE"]["per_item"], {"a": 0.1, "b": 0.3})
+
+    def test_jaspice_metric_starts_docker_server_when_not_ready(self) -> None:
+        from capevalkit.metrics.jaspice_metric import _ensure_jaspice_server
+
+        calls: list[list[str]] = []
+
+        def fake_run(command, **kwargs):
+            calls.append(command)
+            if command[:3] == ["docker", "container", "inspect"]:
+                return subprocess.CompletedProcess(command, 1)
+            return subprocess.CompletedProcess(command, 0)
+
+        with patch("capevalkit.metrics.jaspice_metric._server_ready", side_effect=[False, True]):
+            with patch("shutil.which", return_value="docker"):
+                with patch("subprocess.run", fake_run):
+                    with patch("capevalkit.metrics.jaspice_metric._docker_image_exists", return_value=False):
+                        with patch("capevalkit.metrics.jaspice_metric._build_docker_image") as build:
+                            _ensure_jaspice_server(
+                                "http://localhost:2115",
+                                docker_image="capevalkit-jaspice:test",
+                                container_name="capevalkit-jaspice-test",
+                            )
+
+        build.assert_called_once_with("docker", "capevalkit-jaspice:test")
+        self.assertIn(
+            [
+                "docker",
+                "run",
+                "-d",
+                "--name",
+                "capevalkit-jaspice-test",
+                "-p",
+                "2115:2115",
+                "capevalkit-jaspice:test",
+            ],
+            calls,
+        )
+
+    def test_jaspice_dockerfile_patch_uses_debian_archive(self) -> None:
+        from capevalkit.metrics.jaspice_metric import _patch_jaspice_dockerfile
+
+        with tempfile.TemporaryDirectory() as tmp:
+            dockerfile = Path(tmp) / "Dockerfile"
+            dockerfile.write_text(
+                "FROM python:3.8.10\n"
+                "ENV DEBIAN_FRONTEND noninteractive\n"
+                "RUN apt-get update --fix-missing &&\\\n"
+                "    apt-get install -y apt-utils\n"
+                "RUN cd /tmp/knp-4.20 / &&\\\n"
+                "    make install\n"
+            )
+
+            _patch_jaspice_dockerfile(dockerfile)
+
+            text = dockerfile.read_text()
+
+        self.assertIn("ENV DEBIAN_FRONTEND=noninteractive", text)
+        self.assertIn("archive.debian.org/debian", text)
+        self.assertIn('Acquire::Check-Valid-Until "false"', text)
+        self.assertIn("cd /tmp/knp-4.20 &&\\", text)
+        self.assertNotIn("cd /tmp/knp-4.20 /", text)
 
     def test_longcaparena_cli_alias_expands_to_six_benchmarks(self) -> None:
         self.assertEqual(

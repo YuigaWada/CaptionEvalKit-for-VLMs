@@ -74,6 +74,7 @@ packages = ["capevalkit"]
 "metrics/clipscore-vitl" = "capevalkit/resources/metrics/clipscore-vitl"
 "metrics/clipscoreavg" = "capevalkit/resources/metrics/clipscoreavg"
 "metrics/fleur" = "capevalkit/resources/metrics/fleur"
+"metrics/jaspice" = "capevalkit/resources/metrics/jaspice"
 "metrics/meteor" = "capevalkit/resources/metrics/meteor"
 "metrics/pacscore" = "capevalkit/resources/metrics/pacscore"
 "metrics/pacscore-vitl" = "capevalkit/resources/metrics/pacscore-vitl"
