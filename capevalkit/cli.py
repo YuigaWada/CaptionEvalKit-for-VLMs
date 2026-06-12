@@ -325,7 +325,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     suite_parser = subparsers.add_parser("suite")
     suite_parser.add_argument("--metrics", default="bleu,rouge,meteor,cider,spice,clipscore,pacscore,polos")
-    suite_parser.add_argument("--benchmarks", default="composite,flickr8k-ex,flickr8k-cf,nebula")
+    suite_parser.add_argument("--benchmarks", default="composite,flickr8k-ex,flickr8k-cf,nebula,polaris")
     suite_parser.add_argument("--data-root")
     suite_parser.add_argument("--output-dir", default=str(repo_root() / "outputs"))
     suite_parser.add_argument("--expected-root", default=str(repo_root() / "benchmarks" / "expected"))
