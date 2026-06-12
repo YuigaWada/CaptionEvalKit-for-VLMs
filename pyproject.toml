@@ -4,12 +4,42 @@ version = "0.1.0"
 description = "A reproducible caption-evaluation toolkit for VLMs with per-metric uv environments."
 readme = "README.md"
 requires-python = ">=3.10"
+license = "BSD-3-Clause-Clear"
+license-files = ["LICENSE"]
+authors = [
+    { name = "Yuiga Wada" },
+]
+maintainers = [
+    { name = "Yuiga Wada" },
+]
+keywords = [
+    "caption-evaluation",
+    "vision-language-models",
+    "vlm",
+    "metrics",
+    "reproducibility",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
 dependencies = [
     "datasets>=2.19,<4",
     "pillow>=10",
     "rich>=13",
     "tomli>=2; python_version < '3.11'",
 ]
+
+[project.urls]
+Homepage = "https://github.com/YuigaWada/CaptionEvalKit-for-VLMs"
+Repository = "https://github.com/YuigaWada/CaptionEvalKit-for-VLMs"
+Issues = "https://github.com/YuigaWada/CaptionEvalKit-for-VLMs/issues"
 
 [project.scripts]
 capevalkit = "capevalkit.launcher:main"
