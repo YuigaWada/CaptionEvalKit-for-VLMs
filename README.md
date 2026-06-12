@@ -13,6 +13,10 @@ CaptionEvalKit currently supports:
 * **Classic captioning metrics:** BLEU, ROUGE-L, METEOR, CIDEr, and SPICE
 * **Benchmarks:** Composite, Flickr8k-Ex, Flickr8k-CF, Polaris, Nebula, and LongCap-Arena
 
+<img width="850" height="178" alt="Screenshot 2026-06-13 at 2 23 30" src="https://github.com/user-attachments/assets/eea86fbb-d9ae-4fce-98fd-29f2510dd2bb" />
+
+
+
 ## Table of Contents
 
 * [Install](#install)
