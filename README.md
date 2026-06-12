@@ -27,6 +27,7 @@ CaptionEvalKit currently supports:
 * [Supported Metrics](#supported-metrics)
 * [Supported Benchmarks](#supported-benchmarks)
 * [Data and Assets](#data-and-assets)
+* [TODO](#todo)
 * [Development](#development)
 * [Citation](#citation)
 
@@ -427,6 +428,11 @@ data/
 ```
 
 </details>
+
+## TODO
+
+- [ ] Implement EXPERT benchmark support.
+- [ ] Improve the first-download UI/UX for `all_reproduce`.
 
 ## Development
 
