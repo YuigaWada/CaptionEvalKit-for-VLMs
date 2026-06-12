@@ -1,0 +1,7 @@
+{
+  "source": "Lee et al. 2024 FLEUR Table 1",
+  "score_name": "FLEUR",
+  "correlations": {
+    "kendall_tau_c": 63.5
+  }
+}

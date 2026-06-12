@@ -1,0 +1,28 @@
+[metric]
+name = "polos"
+python = ">=3.9,<=3.10.0"
+module = "capevalkit.metrics.polos"
+benchmark_module = "capevalkit.metrics.polos_validate"
+
+[repository]
+dir = "metrics/upstreams/polos"
+url = "https://github.com/keio-smilab24/Polos.git"
+uv_project = "metrics/upstreams/polos"
+
+[runner]
+command = ["python", "-m", "capevalkit.metrics.polos"]
+
+[benchmarks.flickr8k-cf]
+args = ["--flickr"]
+
+[benchmarks.flickr8k-ex]
+args = ["--flickr"]
+
+[benchmarks.polaris]
+args = ["--coef"]
+
+[checks]
+smoke = ["python", "-m", "capevalkit.metrics.polos", "--help"]
+
+[compatibility]
+merge_policy = "single-metric-until-lock-import-score-and-benchmark-pass"

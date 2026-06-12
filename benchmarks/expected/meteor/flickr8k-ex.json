@@ -1,0 +1,8 @@
+{
+  "source": "PACScore README correlation output for Flickr8k-Expert",
+  "score_name": "METEOR",
+  "correlations": {
+    "kendall_tau_b": 41.5,
+    "kendall_tau_c": 41.8
+  }
+}

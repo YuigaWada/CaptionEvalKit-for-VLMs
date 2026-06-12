@@ -1,0 +1,8 @@
+{
+  "source": "PACScore README correlation output for Flickr8k-CF; arXiv:2512.21582 Table 1 lists 16.4 for tau-b",
+  "score_name": "BLEU-4",
+  "correlations": {
+    "kendall_tau_b": 16.9,
+    "kendall_tau_c": 8.7
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "source": "arXiv:2512.21582 Table 1, rounded reported CLIP-S values",
+  "score_name": "CLIPScore",
+  "correlations": {
+    "kendall_tau_b": 49.8,
+    "kendall_tau_c": 53.8
+  }
+}

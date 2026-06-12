@@ -1,0 +1,7 @@
+{
+  "source": "Polos CVPR 2024 Table 1, rounded reported SPICE value for Polaris",
+  "score_name": "SPICE",
+  "correlations": {
+    "kendall_tau_c": 51.0
+  }
+}

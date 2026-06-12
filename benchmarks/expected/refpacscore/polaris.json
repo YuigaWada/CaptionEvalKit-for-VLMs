@@ -1,0 +1,7 @@
+{
+  "source": "Wada et al. 2024 Polos Table 1, rounded reported RefPAC-S value for Polaris",
+  "score_name": "RefPAC-S",
+  "correlations": {
+    "kendall_tau_c": 56.0
+  }
+}

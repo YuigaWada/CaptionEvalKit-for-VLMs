@@ -1,0 +1,19 @@
+[metric]
+name = "clipscore"
+python = ">=3.9,<3.11"
+module = "capevalkit.metrics.clipscore_metric"
+
+[repository]
+dir = "metrics/upstreams/clipscore"
+url = "https://github.com/jmhessel/clipscore.git"
+uv_project = "metrics/upstreams/clipscore"
+
+[runner]
+command = ["python", "-m", "capevalkit.metrics.clipscore_metric"]
+
+[checks]
+smoke = ["python", "-m", "capevalkit.metrics.clipscore_metric", "--help"]
+
+[compatibility]
+merge_policy = "single-metric-until-lock-import-score-and-benchmark-pass"
+

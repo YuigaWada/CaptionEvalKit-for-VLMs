@@ -1,0 +1,7 @@
+{
+  "source": "Wada et al. 2024 Polos Table 1 / Matsuda et al. 2024 DENEB Table 1, RefPAC-S ViT-B/32",
+  "score_name": "RefPAC-S",
+  "correlations": {
+    "kendall_tau_b": 37.6
+  }
+}

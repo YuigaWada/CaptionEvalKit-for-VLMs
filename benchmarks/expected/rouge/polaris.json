@@ -1,0 +1,7 @@
+{
+  "source": "Polaris benchmark table, rounded reported ROUGE value",
+  "score_name": "ROUGE-L",
+  "correlations": {
+    "kendall_tau_c": 46.3
+  }
+}

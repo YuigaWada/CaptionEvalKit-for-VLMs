@@ -1,0 +1,8 @@
+{
+  "source": "arXiv:2512.21582 Table 1, rounded reported SPICE values",
+  "score_name": "SPICE",
+  "correlations": {
+    "kendall_tau_b": 51.5,
+    "kendall_tau_c": 47.4
+  }
+}

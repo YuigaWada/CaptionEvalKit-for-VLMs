@@ -1,0 +1,8 @@
+{
+  "source": "Matsuda et al. 2025 VELA Table 1 and Appendix D Table 4, LongCap-Arena TestA Fluency",
+  "score_name": "VELA",
+  "correlations": {
+    "kendall_tau_b": 55.2,
+    "kendall_tau_c": 57.4
+  }
+}

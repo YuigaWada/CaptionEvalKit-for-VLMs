@@ -1,0 +1,7 @@
+{
+  "source": "Polaris benchmark table, rounded reported BLEU-4 value; arXiv:2512.21582 reports Nebula instead of Polaris",
+  "score_name": "BLEU-4",
+  "correlations": {
+    "kendall_tau_c": 46.3
+  }
+}

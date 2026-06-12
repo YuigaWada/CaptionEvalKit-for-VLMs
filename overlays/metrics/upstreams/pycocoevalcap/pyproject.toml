@@ -1,0 +1,12 @@
+[project]
+name = "capevalkit-env-pycocoevalcap"
+version = "0.1.0"
+requires-python = ">=3.9"
+dependencies = [
+    "pycocotools>=2.0.2",
+    "numpy",
+    "tomli>=2; python_version < '3.11'",
+]
+
+[tool.uv]
+package = false

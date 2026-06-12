@@ -1,0 +1,7 @@
+{
+  "source": "Matsuda et al. 2024 DENEB Table 1, rounded reported RefPAC-S ViT-B/32 value for Nebula",
+  "score_name": "RefPAC-S",
+  "correlations": {
+    "kendall_tau_c": 50.6
+  }
+}

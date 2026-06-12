@@ -1,0 +1,79 @@
+{
+  "capevalkit_version": "0.1.0",
+  "schema_version": 1,
+  "upstreams": {
+    "clipscore": {
+      "overlays": [
+        "overlays/metrics/upstreams/clipscore/pyproject.toml",
+        "overlays/metrics/upstreams/clipscore/uv.toml"
+      ],
+      "path": "metrics/upstreams/clipscore",
+      "rev": "1036465276513621f77f1c2208d742e4a430781f",
+      "source": "git",
+      "url": "https://github.com/jmhessel/clipscore.git",
+      "uv_project": "metrics/upstreams/clipscore"
+    },
+    "fleur": {
+      "overlays": [
+        "overlays/metrics/upstreams/fleur/fleur_wrapper/__init__.py",
+        "overlays/metrics/upstreams/fleur/pyproject.toml",
+        "overlays/metrics/upstreams/fleur/uv.toml"
+      ],
+      "path": "metrics/upstreams/fleur",
+      "rev": "b9cd6c9c086113b9ad3d040522a85c776aff1225",
+      "source": "git",
+      "url": "https://github.com/Yebin46/FLEUR.git",
+      "uv_project": "metrics/upstreams/fleur"
+    },
+    "pacscore": {
+      "overlays": [
+        "overlays/metrics/upstreams/pacscore/pyproject.toml",
+        "overlays/metrics/upstreams/pacscore/uv.toml"
+      ],
+      "path": "metrics/upstreams/pacscore",
+      "rev": "bfbc488e9f5cccd818e75c7cdfaa37e1c87f00eb",
+      "source": "git",
+      "url": "https://github.com/aimagelab/pacscore.git",
+      "uv_project": "metrics/upstreams/pacscore"
+    },
+    "polos": {
+      "overlays": [
+        "overlays/metrics/upstreams/polos/polos/models/encoders/__init__.py",
+        "overlays/metrics/upstreams/polos/polos/models/encoders/bert.py",
+        "overlays/metrics/upstreams/polos/polos/models/estimators/polos_estimator.py",
+        "overlays/metrics/upstreams/polos/polos/models/model_base.py",
+        "overlays/metrics/upstreams/polos/polos/tokenizers_/__init__.py",
+        "overlays/metrics/upstreams/polos/pyproject.toml",
+        "overlays/metrics/upstreams/polos/uv.toml"
+      ],
+      "path": "metrics/upstreams/polos",
+      "rev": "839d64de370647ccc3ef57d95434e27d2df68b8c",
+      "source": "git",
+      "url": "https://github.com/keio-smilab24/Polos.git",
+      "uv_project": "metrics/upstreams/polos"
+    },
+    "pycocoevalcap": {
+      "overlays": [
+        "overlays/metrics/upstreams/pycocoevalcap/pyproject.toml",
+        "overlays/metrics/upstreams/pycocoevalcap/uv.toml"
+      ],
+      "path": "metrics/upstreams/pycocoevalcap",
+      "rev": "a24f74c408c918f1f4ec34e9514bc8a76ce41ffd",
+      "source": "git",
+      "url": "https://github.com/salaniz/pycocoevalcap.git",
+      "uv_project": "metrics/upstreams/pycocoevalcap"
+    },
+    "vela": {
+      "overlays": [
+        "overlays/metrics/upstreams/vela/configs/config_regressor.yaml",
+        "overlays/metrics/upstreams/vela/pyproject.toml",
+        "overlays/metrics/upstreams/vela/uv.toml"
+      ],
+      "path": "metrics/upstreams/vela",
+      "rev": "75f4ff53c9776ee05e3987f59c2f9967c244fc73",
+      "source": "git",
+      "url": "https://github.com/Ka2ukiMatsuda/VELA.git",
+      "uv_project": "metrics/upstreams/vela"
+    }
+  }
+}

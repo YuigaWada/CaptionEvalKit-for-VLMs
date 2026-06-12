@@ -1,0 +1,8 @@
+{
+  "source": "arXiv:2512.21582 Table 1, rounded reported Polos values",
+  "score_name": "Polos",
+  "correlations": {
+    "kendall_tau_b": 37.8,
+    "kendall_tau_c": 19.5
+  }
+}

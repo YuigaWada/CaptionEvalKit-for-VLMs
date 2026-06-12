@@ -1,0 +1,7 @@
+{
+  "source": "Polos CVPR 2024 Table 1, rounded reported PAC-S value for Polaris",
+  "score_name": "PAC-S",
+  "correlations": {
+    "kendall_tau_c": 52.5
+  }
+}

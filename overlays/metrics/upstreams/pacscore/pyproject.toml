@@ -1,0 +1,22 @@
+[project]
+name = "capevalkit-env-pacscore"
+version = "0.1.0"
+requires-python = ">=3.9,<3.11"
+dependencies = [
+    "ftfy",
+    "huggingface-hub",
+    "matplotlib",
+    "numpy<2",
+    "pillow",
+    "pycocoevalcap",
+    "pycocotools",
+    "regex",
+    "scipy",
+    "torch",
+    "torchvision",
+    "tomli>=2; python_version < '3.11'",
+    "tqdm",
+]
+
+[tool.uv]
+package = false

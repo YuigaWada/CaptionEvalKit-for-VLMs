@@ -1,0 +1,8 @@
+{
+  "source": "arXiv:2512.21582 Table 1, rounded reported BLEU values",
+  "score_name": "BLEU-4",
+  "correlations": {
+    "kendall_tau_b": 46.5,
+    "kendall_tau_c": 44.1
+  }
+}

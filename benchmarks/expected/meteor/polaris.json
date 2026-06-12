@@ -1,0 +1,7 @@
+{
+  "source": "Polaris benchmark table, rounded reported METEOR value",
+  "score_name": "METEOR",
+  "correlations": {
+    "kendall_tau_c": 51.2
+  }
+}

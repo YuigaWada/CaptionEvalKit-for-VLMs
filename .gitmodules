@@ -1,0 +1,24 @@
+[submodule "polos"]
+	path = metrics/upstreams/polos
+	url = https://github.com/keio-smilab24/Polos.git
+	ignore = dirty
+[submodule "pycocoevalcap"]
+	path = metrics/upstreams/pycocoevalcap
+	url = https://github.com/salaniz/pycocoevalcap.git
+	ignore = untracked
+[submodule "pacscore"]
+	path = metrics/upstreams/pacscore
+	url = https://github.com/aimagelab/pacscore.git
+	ignore = untracked
+[submodule "clipscore"]
+	path = metrics/upstreams/clipscore
+	url = https://github.com/jmhessel/clipscore.git
+	ignore = untracked
+[submodule "vela"]
+	path = metrics/upstreams/vela
+	url = https://github.com/Ka2ukiMatsuda/VELA.git
+	ignore = dirty
+[submodule "fleur"]
+	path = metrics/upstreams/fleur
+	url = https://github.com/Yebin46/FLEUR.git
+	ignore = dirty

@@ -1,0 +1,8 @@
+{
+  "source": "arXiv:2512.21582 Table 1, rounded reported CIDEr values",
+  "score_name": "CIDEr",
+  "correlations": {
+    "kendall_tau_b": 34.9,
+    "kendall_tau_c": 37.7
+  }
+}

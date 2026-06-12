@@ -1,0 +1,7 @@
+{
+  "source": "Polos CVPR 2024 Table 1, rounded reported Polos value for Polaris",
+  "score_name": "Polos",
+  "correlations": {
+    "kendall_tau_c": 57.8
+  }
+}

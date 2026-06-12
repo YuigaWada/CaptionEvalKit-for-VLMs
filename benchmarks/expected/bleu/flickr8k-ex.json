@@ -1,0 +1,8 @@
+{
+  "source": "PACScore README correlation output for Flickr8k-Expert",
+  "score_name": "BLEU-4",
+  "correlations": {
+    "kendall_tau_b": 30.6,
+    "kendall_tau_c": 30.8
+  }
+}

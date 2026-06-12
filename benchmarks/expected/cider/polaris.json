@@ -1,0 +1,7 @@
+{
+  "source": "Polaris benchmark table, rounded reported CIDEr value",
+  "score_name": "CIDEr",
+  "correlations": {
+    "kendall_tau_c": 52.1
+  }
+}

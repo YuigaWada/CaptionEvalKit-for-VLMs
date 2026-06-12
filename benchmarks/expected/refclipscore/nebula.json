@@ -1,0 +1,7 @@
+{
+  "source": "Matsuda et al. 2024 DENEB Table 1, rounded reported RefCLIP-S value for Nebula",
+  "score_name": "RefCLIPScore",
+  "correlations": {
+    "kendall_tau_c": 46.9
+  }
+}

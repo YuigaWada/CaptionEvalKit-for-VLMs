@@ -1,0 +1,8 @@
+{
+  "source": "Sarto et al. 2025 PAC-S++ Table 1, CLIP ViT-B/32 RefCLIP-S",
+  "score_name": "RefCLIPScore",
+  "correlations": {
+    "kendall_tau_b": 51.2,
+    "kendall_tau_c": 55.4
+  }
+}

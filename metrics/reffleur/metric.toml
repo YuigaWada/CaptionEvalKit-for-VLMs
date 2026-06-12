@@ -1,0 +1,18 @@
+[metric]
+name = "reffleur"
+python = ">=3.10,<3.11"
+module = "capevalkit.metrics.fleur_metric"
+
+[repository]
+dir = "metrics/upstreams/fleur"
+url = "https://github.com/Yebin46/FLEUR.git"
+uv_project = "metrics/upstreams/fleur"
+
+[runner]
+command = ["python", "-m", "capevalkit.metrics.fleur_metric"]
+
+[checks]
+smoke = ["python", "-m", "capevalkit.metrics.fleur_metric", "--help"]
+
+[compatibility]
+merge_policy = "llava-heavy-reference-metric"

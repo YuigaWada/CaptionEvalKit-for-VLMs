@@ -1,0 +1,50 @@
+img_dir: data/images
+desc_train_path: data/train/desc_train.csv
+rel_train_path: data/train/rel_train.csv
+flu_train_path: data/train/flu_train.csv
+
+desc_val_path: data/test/desc_test.csv
+rel_val_path: data/test/rel_test.csv
+flu_val_path: data/test/flu_test.csv
+
+desc_test_path: data/test/desc_test.csv
+rel_test_path: data/test/rel_test.csv
+flu_test_path: data/test/flu_test.csv
+desc_dci_val_path: data/test/desc_dci_val.csv
+rel_dci_val_path: data/test/rel_dci_val.csv
+flu_dci_val_path: data/test/flu_dci_val.csv
+desc_dci_test_path: data/test/desc_dci_test.csv
+rel_dci_test_path: data/test/rel_dci_test.csv
+flu_dci_test_path: data/test/flu_dci_test.csv
+
+mode_embed_dim: 8
+lr_weights: 3e-4
+
+seed: 42
+batch_size: 1
+num_epochs: 4
+lr_llm: 5e-5
+lr_projection: 1e-4
+weight_decay: 0.01
+num_workers: 16
+
+use_earlystopping: False
+monitor: val_kendall
+patience: 1
+
+model_class: VELARegressor
+model_name: Qwen/Qwen2.5-3B-Instruct
+quantization: none
+
+long_clip_model: vela/long_clip/checkpoints/longclip-L.pt
+
+lora: True
+r: 4
+lora_alpha: 16
+lora_dropout: 0.1
+target_modules: ["q_proj", "v_proj"]
+
+hydra:
+  output_subdir: null
+  run:
+    dir: .

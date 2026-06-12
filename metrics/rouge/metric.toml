@@ -1,0 +1,19 @@
+[metric]
+name = "rouge"
+python = ">=3.9"
+module = "capevalkit.metrics.pycocoevalcap_metrics"
+
+[repository]
+dir = "metrics/upstreams/pycocoevalcap"
+url = "https://github.com/salaniz/pycocoevalcap.git"
+uv_project = "metrics/upstreams/pycocoevalcap"
+
+[runner]
+command = ["python", "-m", "capevalkit.metrics.pycocoevalcap_metrics", "--metrics", "rouge"]
+
+[checks]
+smoke = ["python", "-m", "capevalkit.metrics.pycocoevalcap_metrics", "--help"]
+
+[compatibility]
+merge_policy = "shared-pycocoevalcap-backend"
+

@@ -1,0 +1,22 @@
+[project]
+name = "fleur-wrapper"
+version = "0.0.0"
+requires-python = ">=3.10,<3.11"
+dependencies = [
+    "llava",
+    "numpy<2",
+    "pillow",
+    "scipy",
+    "setuptools<81",
+    "tomli>=2; python_version < '3.11'",
+]
+
+[tool.uv.sources]
+llava = { path = "LLaVA", editable = true }
+
+[tool.hatch.build.targets.wheel]
+packages = ["fleur_wrapper"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

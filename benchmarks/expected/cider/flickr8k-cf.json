@@ -1,0 +1,8 @@
+{
+  "source": "PACScore README correlation output for Flickr8k-CF",
+  "score_name": "CIDEr",
+  "correlations": {
+    "kendall_tau_b": 24.6,
+    "kendall_tau_c": 12.7
+  }
+}

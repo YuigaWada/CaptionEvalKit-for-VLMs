@@ -1,0 +1,8 @@
+{
+  "source": "Matsuda et al. 2025 VELA Table 1 and Appendix D Table 4, LongCap-Arena TestA Descriptiveness",
+  "score_name": "VELA",
+  "correlations": {
+    "kendall_tau_b": 56.8,
+    "kendall_tau_c": 56.4
+  }
+}

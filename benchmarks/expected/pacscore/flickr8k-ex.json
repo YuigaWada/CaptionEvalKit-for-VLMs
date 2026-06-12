@@ -1,0 +1,8 @@
+{
+  "source": "arXiv:2512.21582 Table 1, rounded reported PAC-S values",
+  "score_name": "PAC-S",
+  "correlations": {
+    "kendall_tau_b": 53.9,
+    "kendall_tau_c": 54.3
+  }
+}

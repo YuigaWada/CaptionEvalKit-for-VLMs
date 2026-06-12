@@ -1,0 +1,7 @@
+{
+  "source": "Polos CVPR 2024 Table 1, rounded reported CLIP-S value for Polaris",
+  "score_name": "CLIPScore",
+  "correlations": {
+    "kendall_tau_c": 52.3
+  }
+}

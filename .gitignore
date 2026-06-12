@@ -1,0 +1,11 @@
+__pycache__/
+*.py[cod]
+.venv/
+.uv-cache/
+.cache/
+.hf-cache/
+.model-cache/
+outputs/
+envs/
+data/
+self-distillation-smoothing/

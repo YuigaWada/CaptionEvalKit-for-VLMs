@@ -1,0 +1,18 @@
+[project]
+name = "capevalkit-env-clipscore"
+version = "0.1.0"
+requires-python = ">=3.9,<3.11"
+dependencies = [
+    "clip @ git+https://github.com/openai/CLIP.git",
+    "numpy<2",
+    "packaging",
+    "pillow",
+    "scikit-learn",
+    "torch",
+    "torchvision",
+    "tomli>=2; python_version < '3.11'",
+    "tqdm",
+]
+
+[tool.uv]
+package = false
