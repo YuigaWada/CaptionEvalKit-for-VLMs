@@ -39,7 +39,7 @@ Requirements: Python 3.10+, `git`, and `uv`. Java is also required for METEOR/SP
 From PyPI or a built wheel:
 
 ```bash
-pip install captionevalkit-for-vlms
+pip install capevalkit
 capevalkit doctor
 capevalkit list-metrics
 ```

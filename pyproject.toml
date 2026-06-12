@@ -1,5 +1,5 @@
 [project]
-name = "captionevalkit-for-vlms"
+name = "capevalkit"
 version = "0.1.0"
 description = "A reproducible caption-evaluation toolkit for VLMs with per-metric uv environments."
 readme = "README.md"
