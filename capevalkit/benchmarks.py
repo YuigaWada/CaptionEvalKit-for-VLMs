@@ -70,10 +70,6 @@ LONGCAPARENA_BENCHMARKS = {
     "longcaparena-testb-rel": ("dci_test.rel", "rel", "rel_dci_test.csv"),
     "longcaparena-testb-flu": ("dci_test.flu", "flu", "flu_dci_test.csv"),
 }
-BENCHMARK_ALIASES = {
-    "ex": "flickr8k-ex",
-    "flickr8k-expert": "flickr8k-ex",
-}
 
 
 @dataclass(frozen=True)
@@ -108,10 +104,6 @@ def _image_path(image_dir: Path, image_name: str) -> str:
 
 def _normalize_text(value: Any) -> str:
     return " ".join(str(value).split())
-
-
-def normalize_benchmark_name(name: str) -> str:
-    return BENCHMARK_ALIASES.get(name, name)
 
 
 def _load_csv_benchmark(csv_path: Path, image_dir: Path) -> list[BenchmarkItem]:
@@ -798,7 +790,6 @@ def _data_dir(data_root: str | None, subdir: str, filename: str) -> Path:
 
 
 def load_benchmark(name: str, data_root: str | None = None, limit: int | None = None) -> list[BenchmarkItem]:
-    name = normalize_benchmark_name(name)
     if name == "composite":
         if not _explicit_non_repo_data_root(data_root):
             return _load_hf_composite(limit=limit)
