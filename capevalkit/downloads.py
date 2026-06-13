@@ -50,7 +50,7 @@ DOWNLOADABLE_ASSETS: tuple[Asset, ...] = (
         description="PAC-S OpenCLIP ViT-L/14 checkpoint used by pacscore-vitl/refpacscore-vitl/pacscoreavg.",
         source_type="url",
         default=False,
-        url="https://drive.usercontent.google.com/download?id=1F-0Pma-vfJPAiDzeyl-iEdSXZIO1cDae&export=download&confirm=t",
+        url="https://drive.usercontent.google.com/download?id=1G1DAGQf5fW2U3u7K3Dn-eCC6koMDyvsU&export=download&confirm=t",
         destination="metrics/upstreams/pacscore/checkpoints/openClip_ViT-L-14.pth",
         ready_path="metrics/upstreams/pacscore/checkpoints/openClip_ViT-L-14.pth",
         license_note="Public upstream Google Drive checkpoint; checkpoint-specific license is not declared upstream.",
