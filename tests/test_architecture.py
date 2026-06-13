@@ -630,6 +630,13 @@ class ArchitectureTest(unittest.TestCase):
         self.assertEqual(items, [expected])
         loader.assert_called_once_with("cf", limit=None)
 
+    def test_load_benchmark_rejects_legacy_aliases(self) -> None:
+        for name in ["ex", "flickr8k-expert"]:
+            with self.subTest(name=name):
+                with self.assertRaises(ValueError) as exc:
+                    load_benchmark(name)
+                self.assertEqual(str(exc.exception), f"unknown benchmark: {name}")
+
     def test_load_benchmark_forwards_limit_to_hf_loader(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
