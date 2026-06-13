@@ -630,21 +630,12 @@ class ArchitectureTest(unittest.TestCase):
         self.assertEqual(items, [expected])
         loader.assert_called_once_with("cf", limit=None)
 
-    def test_loads_legacy_ex_alias_from_hf_for_repo_data_root(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            expected = benchmarks.BenchmarkItem(
-                id="row0",
-                image="image.jpg",
-                caption="caption",
-                references=["ref"],
-                score=1.0,
-            )
-            with patch.object(benchmarks, "repo_root", return_value=root):
-                with patch.object(benchmarks, "_load_hf_flickr8k", return_value=[expected]) as loader:
-                    items = load_benchmark("ex", str(root / "data"))
-        self.assertEqual(items, [expected])
-        loader.assert_called_once_with("expert", limit=None)
+    def test_load_benchmark_rejects_legacy_aliases(self) -> None:
+        for name in ["ex", "flickr8k-expert"]:
+            with self.subTest(name=name):
+                with self.assertRaises(ValueError) as exc:
+                    load_benchmark(name)
+                self.assertEqual(str(exc.exception), f"unknown benchmark: {name}")
 
     def test_load_benchmark_forwards_limit_to_hf_loader(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -1289,19 +1280,6 @@ class ArchitectureTest(unittest.TestCase):
                 ("bleu", "polaris"),
             ],
         )
-
-    def test_all_reproduce_normalizes_legacy_ex_alias(self) -> None:
-        tasks = expected_tasks(
-            expected_root=Path("benchmarks/expected"),
-            output_dir=Path("outputs/all-reproduce"),
-            metrics=["pacscore"],
-            benchmarks=["ex"],
-        )
-
-        self.assertEqual(len(tasks), 1)
-        self.assertEqual(tasks[0].benchmark, "flickr8k-ex")
-        self.assertEqual(tasks[0].expected, Path("benchmarks/expected/pacscore/flickr8k-ex.json"))
-        self.assertEqual(tasks[0].output, Path("outputs/all-reproduce/pacscore/flickr8k-ex.json"))
 
     def test_all_reproduce_groups_pycocoevalcap_metrics_by_benchmark(self) -> None:
         tasks = expected_tasks(

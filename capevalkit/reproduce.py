@@ -12,7 +12,6 @@ from typing import Callable, Iterable
 
 from .benchmarks import (
     LONGCAPARENA_BENCHMARKS,
-    normalize_benchmark_name,
     run_metric_on_benchmark,
     write_benchmark_result,
 )
@@ -152,8 +151,7 @@ def expected_tasks(
     tasks = []
     seen: set[tuple[str, str]] = set()
     for metric in metrics:
-        for raw_benchmark in benchmarks:
-            benchmark = normalize_benchmark_name(raw_benchmark)
+        for benchmark in benchmarks:
             key = (metric, benchmark)
             if key in seen:
                 continue
@@ -180,8 +178,7 @@ def missing_expected_pairs(
     missing = []
     seen: set[tuple[str, str]] = set()
     for metric in metrics:
-        for raw_benchmark in benchmarks:
-            benchmark = normalize_benchmark_name(raw_benchmark)
+        for benchmark in benchmarks:
             key = (metric, benchmark)
             if key in seen:
                 continue
