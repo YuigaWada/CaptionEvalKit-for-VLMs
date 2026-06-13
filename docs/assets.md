@@ -26,7 +26,7 @@ local reproduction runs.
 | OpenAI CLIP ViT-L/14 | CLIPScore ViT-L/14 variants | URL: `https://openaipublic.azureedge.net/clip/models/b8cca3fd41ae0c99ba7e8951adf17d267cdb84cd88be6f7c2e0eca1737a03836/ViT-L-14.pt` | Auto-downloaded by `clip.load`. |
 | OpenCLIP ViT-L/14 LAION2B | PAC-S OpenCLIP ViT-L/14 backbone | HF: `laion/CLIP-ViT-L-14-laion2B-s32B-b82K` | Auto-downloaded by PACScore's OpenCLIP loader. |
 | PAC-S CLIP ViT-B/32 checkpoint | `pacscore`, `refpacscore` | URL: `https://drive.usercontent.google.com/download?id=1F-0Pma-vfJPAiDzeyl-iEdSXZIO1cDae&export=download&confirm=t`; local path: `metrics/upstreams/pacscore/checkpoints/clip_ViT-B-32.pth` | Downloadable via `capevalkit download-assets`. |
-| PAC-S OpenCLIP ViT-L/14 checkpoint | `pacscore-vitl`, `refpacscore-vitl`, `pacscoreavg` | Upstream README lists the same Google Drive ID as the ViT-B/32 file; local path: `metrics/upstreams/pacscore/checkpoints/openClip_ViT-L-14.pth` | Optional/manual until an authoritative source is verified. |
+| PAC-S OpenCLIP ViT-L/14 checkpoint | `pacscore-vitl`, `refpacscore-vitl`, `pacscoreavg` | URL: `https://drive.usercontent.google.com/download?id=1G1DAGQf5fW2U3u7K3Dn-eCC6koMDyvsU&export=download&confirm=t`; local path: `metrics/upstreams/pacscore/checkpoints/openClip_ViT-L-14.pth` | Downloadable via `capevalkit download-assets`. (The upstream README mistakenly links this to the ViT-B/32 file id; the correct id is the distinct 1.6 GB `openClip_ViT-L-14.pth`.) |
 | PAC-S++ CLIP ViT-B/32 checkpoint | Optional PAC-S++ ViT-B/32 runs | URL: `https://ailb-web.ing.unimore.it/publicfiles/pac++/PAC++_clip_ViT-B-32.pth` | Downloadable via `capevalkit download-assets --all` or explicit asset name. |
 | PAC-S++ CLIP ViT-L/14 checkpoint | `pacscorepp`, `refpacscorepp`, `pacscoreppavg` | URL: `https://ailb-web.ing.unimore.it/publicfiles/pac++/PAC++_clip_ViT-L-14.pth` | Downloadable via `capevalkit download-assets`. |
 | Polos checkpoint | `polos` | URL: `https://polos-polaris.s3.ap-northeast-1.amazonaws.com/reprod.zip` | Downloadable via `capevalkit download-assets`; extracted under `.model-cache/polos/`. |
@@ -56,7 +56,7 @@ local reproduction runs.
 | Asset | Used by | Source | License status | Distribution decision |
 | --- | --- | --- | --- | --- |
 | `pacscore-pacs-vitb` | PAC-S CLIP ViT-B/32 | PACScore Google Drive file | Checkpoint-specific license is not declared upstream | Scriptable download into the upstream checkpoint directory; do not bundle. |
-| `pacscore-pacs-openclip-vitl` | PAC-S OpenCLIP ViT-L/14 | PACScore Google Drive file listed by upstream | Checkpoint-specific license is not declared upstream | Optional explicit asset only; upstream link is ambiguous. |
+| `pacscore-pacs-openclip-vitl` | PAC-S OpenCLIP ViT-L/14 | PACScore Google Drive file (distinct 1.6 GB `openClip_ViT-L-14.pth`) | Checkpoint-specific license is not declared upstream | Scriptable download into the upstream checkpoint directory; do not bundle. |
 | `pacscore-pacspp-vitb` | PAC-S++ CLIP ViT-B/32 | PAC-S++ public URL | Checkpoint-specific license is not declared upstream | Scriptable download only; do not bundle. |
 | `pacscore-pacspp-vitl` | PAC-S++ CLIP ViT-L/14 | PAC-S++ public URL | Checkpoint-specific license is not declared upstream | Scriptable download only; do not bundle. |
 | `polos-reprod` | Polos | Polos S3 archive | Upstream code is BSD-3-Clause-Clear; checkpoint is provided by the upstream project | Scriptable download into `.model-cache/polos`; do not bundle. |

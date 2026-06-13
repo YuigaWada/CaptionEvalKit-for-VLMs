@@ -26,7 +26,7 @@ _DEFAULT_CHECKPOINTS = {
 }
 _CHECKPOINT_URLS = {
     ("pacs", "ViT-B/32"): "https://drive.usercontent.google.com/download?id=1F-0Pma-vfJPAiDzeyl-iEdSXZIO1cDae&export=download&confirm=t",
-    ("pacs", "open_clip_ViT-L/14"): "https://drive.usercontent.google.com/download?id=1F-0Pma-vfJPAiDzeyl-iEdSXZIO1cDae&export=download&confirm=t",
+    ("pacs", "open_clip_ViT-L/14"): "https://drive.usercontent.google.com/download?id=1G1DAGQf5fW2U3u7K3Dn-eCC6koMDyvsU&export=download&confirm=t",
     ("pacs++", "ViT-B/32"): "https://ailb-web.ing.unimore.it/publicfiles/pac++/PAC++_clip_ViT-B-32.pth",
     ("pacs++", "ViT-L/14"): "https://ailb-web.ing.unimore.it/publicfiles/pac++/PAC++_clip_ViT-L-14.pth",
 }
