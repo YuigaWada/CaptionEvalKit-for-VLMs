@@ -96,10 +96,7 @@ def _runtime_forced() -> bool:
 
 
 def _lock_path(package_root: Path) -> Path:
-    path = package_root / "resources" / "upstreams.lock.json"
-    if path.exists():
-        return path
-    return path
+    return package_root / "resources" / "upstreams.lock.json"
 
 
 def _lock_digest(path: Path) -> str:
