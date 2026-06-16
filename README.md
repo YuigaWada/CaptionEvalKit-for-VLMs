@@ -110,7 +110,6 @@ Run one metric on one benchmark:
 capevalkit benchmark \
   --metric clipscore \
   --benchmark composite \
-  --limit 8 \
   --output outputs/clipscore/composite.json
 ```
 
@@ -120,7 +119,6 @@ Run the same metric across benchmarks:
 capevalkit suite \
   --metrics clipscore \
   --benchmarks composite,flickr8k-ex,flickr8k-cf,nebula,polaris \
-  --limit 8 \
   --output-dir outputs/clipscore
 ```
 
@@ -186,7 +184,6 @@ result = capeval.evaluate_metric(
     benchmark="flickr8k-cf",
     metric=MyMetric(),
     metric_name="MyMetric",
-    limit=8,
     output="outputs/mymetric/flickr8k-cf.json",
 )
 ```
