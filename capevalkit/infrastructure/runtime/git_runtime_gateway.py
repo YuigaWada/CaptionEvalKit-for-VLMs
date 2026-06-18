@@ -4,7 +4,7 @@ from collections.abc import Iterable
 from pathlib import Path
 
 from capevalkit.application.ports import RuntimeInfo
-from capevalkit.runtime import RuntimeManager
+from capevalkit.infrastructure.runtime.manager import RuntimeManager
 
 
 class GitRuntimeGateway:
@@ -33,4 +33,3 @@ class GitRuntimeGateway:
 
     def ensure_upstreams(self, names: Iterable[str]) -> list[Path]:
         return self.manager.ensure_upstreams(names)
-

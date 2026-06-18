@@ -10,13 +10,13 @@ import sys
 import threading
 from typing import Callable, Iterable
 
-from .benchmarks import (
+from capevalkit.infrastructure.benchmarks.legacy import (
     LONGCAPARENA_BENCHMARKS,
     run_metric_on_benchmark,
     write_benchmark_result,
 )
-from .domain.evaluation import NO_REFERENCE_METRICS
-from .domain.reproduction import (
+from capevalkit.domain.evaluation import NO_REFERENCE_METRICS
+from capevalkit.domain.reproduction import (
     EXCLUSIVE_GPU_METRICS,
     FLEUR_METRICS,
     GPU_METRICS,
@@ -29,8 +29,8 @@ from .domain.reproduction import (
     ResourceRequirementPolicy,
     TolerancePolicy,
 )
-from .paths import repo_root
-from .verify import NumericComparison, compare_results
+from capevalkit.application.verification_service import NumericComparison, compare_results
+from capevalkit.infrastructure.runtime.paths import repo_root
 
 
 DEFAULT_REPRO_METRICS = [

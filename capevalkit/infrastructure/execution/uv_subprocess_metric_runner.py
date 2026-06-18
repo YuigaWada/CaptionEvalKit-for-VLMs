@@ -10,11 +10,11 @@ import time
 from typing import Callable
 
 from capevalkit.application.ports import MetricRunRequest, MetricRunResult
-from capevalkit.context import ProjectContext, default_context
 from capevalkit.domain.metrics import MetricManifest
-from capevalkit.paths import cache_root, repo_root
-from capevalkit.runtime import RuntimeManager
-from capevalkit.runtime_env import apply_runtime_environment
+from capevalkit.infrastructure.runtime.context import ProjectContext, default_context
+from capevalkit.infrastructure.runtime.environment import apply_runtime_environment
+from capevalkit.infrastructure.runtime.manager import RuntimeManager
+from capevalkit.infrastructure.runtime.paths import repo_root
 
 
 ManifestProvider = Callable[[str], MetricManifest]
@@ -184,4 +184,3 @@ def package_import_root(context: ProjectContext | None = None) -> Path:
     except OSError:
         shutil.copytree(package_root, target)
     return bridge
-

@@ -171,7 +171,7 @@ capevalkit benchmark \
 <!-- <summary>Python</summary> -->
 
 ```python
-import capevalkit as capeval
+import capevalkit.api as capeval
 
 class MyMetric:
     def __call__(self, samples):
@@ -240,7 +240,7 @@ capevalkit score \
 Run these examples with `uv run python` from the repository, or install `capevalkit` into your own Python environment.
 
 ```python
-import capevalkit as capeval
+import capevalkit.api as capeval
 
 def predict(batch):
     return ["A dog runs through grass." for _ in batch.images]
@@ -261,7 +261,7 @@ results = capeval.evaluate_caption_model(
 If captions are already generated, pass image-caption pairs directly:
 
 ```python
-import capevalkit as capeval
+import capevalkit.api as capeval
 
 results = capeval.evaluate_captions(
     pairs=[
@@ -286,7 +286,7 @@ results = capeval.evaluate_captions(
 For manual caption-model control:
 
 ```python
-import capevalkit as capeval
+import capevalkit.api as capeval
 
 def predict(batch):
     return ["A dog runs through grass." for _ in batch.images]
@@ -447,7 +447,10 @@ uv run python -m unittest discover -s tests
 Repository map:
 
 ```text
-capevalkit/                    CLI, API, benchmark loaders, verification
+capevalkit/interfaces/         CLI entrypoint, Python API, presenters
+capevalkit/application/        use cases and verification services
+capevalkit/domain/             evaluation/reproduction policies and value objects
+capevalkit/infrastructure/     runtime, metric execution, assets, manifests, benchmark loaders
 metrics/*/metric.toml          metric manifests
 metrics/upstreams/*            upstream metric repositories
 overlays/metrics/upstreams/*   uv overlays for upstream repositories

@@ -10,9 +10,9 @@ from pathlib import Path
 from typing import Literal
 from urllib.request import Request, urlopen
 
-from .paths import repo_root
-from .runtime import RuntimeManager
-from .runtime_env import apply_runtime_environment
+from capevalkit.infrastructure.runtime.environment import apply_runtime_environment
+from capevalkit.infrastructure.runtime.manager import RuntimeManager
+from capevalkit.infrastructure.runtime.paths import repo_root
 
 SourceType = Literal["url", "hf-file", "hf-snapshot"]
 

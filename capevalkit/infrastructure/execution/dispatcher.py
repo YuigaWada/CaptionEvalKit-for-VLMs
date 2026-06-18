@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from .application.ports import MetricRunRequest
-from .domain.metrics import MetricManifest
-from .infrastructure.execution.uv_subprocess_metric_runner import (
+from capevalkit.application.ports import MetricRunRequest
+from capevalkit.domain.metrics import MetricManifest
+from capevalkit.infrastructure.execution.uv_subprocess_metric_runner import (
     UvSubprocessMetricRunner,
     build_uv_command as _build_uv_command,
     call_with_progress as _call_with_progress,
@@ -12,8 +12,8 @@ from .infrastructure.execution.uv_subprocess_metric_runner import (
     pythonpath as _pythonpath,
     uv_project,
 )
-from .manifests import get_manifest
-from .paths import cache_root, repo_root
+from capevalkit.infrastructure.manifests.catalog import get_manifest
+from capevalkit.infrastructure.runtime.paths import cache_root, repo_root
 
 
 def build_uv_command(metric_name: str, args: list[str]) -> list[str]:
@@ -47,7 +47,7 @@ def print_command(metric_name: str, args: list[str]) -> None:
     root = repo_root()
     cache_dir = cache_root() / "uv"
     clip_cache_dir = cache_root() / "clip"
-    from .context import default_context
+    from capevalkit.infrastructure.runtime.context import default_context
 
     context = default_context()
     pythonpath = _pythonpath(_package_import_root(context), root, None)
@@ -82,4 +82,3 @@ __all__ = [
     "print_command",
     "uv_project",
 ]
-

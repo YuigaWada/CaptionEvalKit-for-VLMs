@@ -42,7 +42,7 @@ Repository = "https://github.com/YuigaWada/CaptionEvalKit-for-VLMs"
 Issues = "https://github.com/YuigaWada/CaptionEvalKit-for-VLMs/issues"
 
 [project.scripts]
-capevalkit = "capevalkit.launcher:main"
+capevalkit = "capevalkit.interfaces.launcher:main"
 
 [build-system]
 requires = ["hatchling"]

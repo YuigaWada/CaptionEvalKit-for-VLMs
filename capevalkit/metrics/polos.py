@@ -6,9 +6,9 @@ import json
 from pathlib import Path
 from typing import Any
 
-from capevalkit.compat import zip_strict
-from capevalkit.paths import repo_root
-from capevalkit.progress import progress_update
+from capevalkit.shared.compat import zip_strict
+from capevalkit.infrastructure.runtime.paths import repo_root
+from capevalkit.infrastructure.execution.progress import progress_update
 
 
 def load_model(model_path: str | None = None, model_name: str = "polos") -> Any:

@@ -5,8 +5,8 @@ import unittest
 import zipfile
 from pathlib import Path
 
-from capevalkit.cli import build_parser
-from capevalkit.downloads import Asset, asset_catalog, download_asset, select_assets
+from capevalkit.interfaces.cli import build_parser
+from capevalkit.infrastructure.assets.downloads import Asset, asset_catalog, download_asset, select_assets
 
 
 class DownloadAssetsTest(unittest.TestCase):

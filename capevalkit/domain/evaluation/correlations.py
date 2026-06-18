@@ -4,7 +4,7 @@ from collections import Counter
 from math import isnan, sqrt
 from typing import Iterable
 
-from .compat import zip_strict
+from capevalkit.shared.compat import zip_strict
 
 
 class _Fenwick:

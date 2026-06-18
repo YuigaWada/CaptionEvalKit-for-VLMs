@@ -21,20 +21,21 @@ except ModuleNotFoundError:  # pragma: no cover - Python 3.10 fallback
     import tomli as tomllib
 
 import capevalkit.api as api
-import capevalkit.benchmarks as benchmarks
-import capevalkit.launcher as launcher
-from capevalkit.context import ProjectContext, default_context
-from capevalkit.benchmarks import DEFAULT_SCORE_KEYS, _kendall, load_benchmark
-from capevalkit.cli import _split_csv, _use_references
-from capevalkit.compat import zip_strict
-from capevalkit.dispatcher import _call_with_progress, _package_import_root, _pythonpath, build_uv_command
-from capevalkit.manifests import get_manifest, load_manifests
+from capevalkit.infrastructure.benchmarks import legacy as benchmarks
+from capevalkit.interfaces import launcher
+from capevalkit.infrastructure.runtime.context import ProjectContext, default_context
+from capevalkit.infrastructure.benchmarks.legacy import DEFAULT_SCORE_KEYS, _kendall, load_benchmark
+from capevalkit.interfaces.cli import _split_csv, _use_references
+from capevalkit.shared.compat import zip_strict
+from capevalkit.infrastructure.execution.dispatcher import _call_with_progress, _package_import_root, _pythonpath, build_uv_command
+from capevalkit.infrastructure.benchmarks import legacy as benchmark_impl
+from capevalkit.infrastructure.manifests.catalog import get_manifest, load_manifests
 from capevalkit.metrics.pycocoevalcap_metrics import _per_item_score
-from capevalkit.overlays import ensure_overlays
-from capevalkit.progress import progress_iter, progress_update
-from capevalkit.runtime import RuntimeManager
-from capevalkit.runtime_env import apply_runtime_environment
-from capevalkit.reproduce import (
+from capevalkit.infrastructure.runtime.overlays import ensure_overlays
+from capevalkit.infrastructure.execution.progress import progress_iter, progress_update
+from capevalkit.infrastructure.runtime.manager import RuntimeManager
+from capevalkit.infrastructure.runtime.environment import apply_runtime_environment
+from capevalkit.interfaces.reproduction import (
     DEFAULT_REPRO_BENCHMARKS,
     DEFAULT_REPRO_METRICS,
     ReproduceJob,
@@ -51,8 +52,8 @@ from capevalkit.reproduce import (
     print_results_header,
     run_all_reproduce,
 )
-from capevalkit.verify import NumericComparison
-from capevalkit.verify import verify_results
+from capevalkit.application.verification_service import NumericComparison
+from capevalkit.application.verification_service import verify_results
 
 
 class ArchitectureTest(unittest.TestCase):
@@ -107,7 +108,7 @@ class ArchitectureTest(unittest.TestCase):
 
     def test_dispatcher_call_with_progress_consumes_child_events(self) -> None:
         script = (
-            "from capevalkit.progress import progress_update\n"
+            "from capevalkit.infrastructure.execution.progress import progress_update\n"
             "progress_update(1)\n"
             "progress_update(2)\n"
         )
@@ -225,7 +226,7 @@ class ArchitectureTest(unittest.TestCase):
                     (checkout / ".git").mkdir(parents=True)
                 return subprocess.CompletedProcess(command, 0, stdout="")
 
-            with patch("capevalkit.runtime.subprocess.run", side_effect=fake_run):
+            with patch("capevalkit.infrastructure.runtime.manager.subprocess.run", side_effect=fake_run):
                 RuntimeManager(context).ensure_upstream("demo")
 
             self.assertEqual(commands[0], ["git", "clone", "https://example.test/demo.git", str(runtime / "metrics" / "upstreams" / "demo")])
@@ -275,7 +276,7 @@ class ArchitectureTest(unittest.TestCase):
                     (upstream / ".git").write_text("gitdir: ../../../.git/modules/demo\n")
                 return subprocess.CompletedProcess(command, 0, stdout="")
 
-            with patch("capevalkit.runtime.subprocess.run", side_effect=fake_run):
+            with patch("capevalkit.infrastructure.runtime.manager.subprocess.run", side_effect=fake_run):
                 result = RuntimeManager(context).ensure_upstream("demo")
 
             self.assertEqual(result, upstream)
@@ -343,7 +344,7 @@ class ArchitectureTest(unittest.TestCase):
                     updated = True
                 return subprocess.CompletedProcess(command, 0, stdout="")
 
-            with patch("capevalkit.runtime.subprocess.run", side_effect=fake_run):
+            with patch("capevalkit.infrastructure.runtime.manager.subprocess.run", side_effect=fake_run):
                 RuntimeManager(context).ensure_upstream("demo")
 
             self.assertIn(
@@ -355,8 +356,8 @@ class ArchitectureTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             cwd = Path.cwd()
             try:
-                with patch("capevalkit.launcher.configure_environment", return_value=Path(tmp)):
-                    with patch("capevalkit.launcher.cli.main", return_value=0):
+                with patch("capevalkit.interfaces.launcher.configure_environment", return_value=Path(tmp)):
+                    with patch("capevalkit.interfaces.launcher.cli.main", return_value=0):
                         with contextlib.chdir(tmp):
                             launcher.main([])
                             self.assertEqual(Path.cwd(), Path(tmp))
@@ -366,9 +367,9 @@ class ArchitectureTest(unittest.TestCase):
 
     def test_launcher_does_not_apply_overlays_at_startup(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
-            with patch("capevalkit.launcher.configure_environment", return_value=Path(tmp)):
-                with patch("capevalkit.overlays.ensure_overlays") as overlays:
-                    with patch("capevalkit.launcher.cli.main", return_value=0):
+            with patch("capevalkit.interfaces.launcher.configure_environment", return_value=Path(tmp)):
+                with patch("capevalkit.infrastructure.runtime.overlays.ensure_overlays") as overlays:
+                    with patch("capevalkit.interfaces.launcher.cli.main", return_value=0):
                         launcher.main([])
 
         overlays.assert_not_called()
@@ -422,7 +423,7 @@ class ArchitectureTest(unittest.TestCase):
                     (upstream / "demo.py").write_text("")
                 return subprocess.CompletedProcess(command, 0, stdout="")
 
-            with patch("capevalkit.runtime.subprocess.run", side_effect=fake_run):
+            with patch("capevalkit.infrastructure.runtime.manager.subprocess.run", side_effect=fake_run):
                 result = RuntimeManager(context).ensure_upstream("demo")
 
             self.assertEqual(result, upstream)
@@ -563,7 +564,7 @@ class ArchitectureTest(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as tmp:
             output = Path(tmp) / "metric.json"
-            with patch("capevalkit.api.load_benchmark", return_value=items):
+            with patch("capevalkit.interfaces.python_api.load_benchmark", return_value=items):
                 result = api.evaluate_metric(
                     benchmark="bench",
                     metric=metric,
@@ -608,7 +609,7 @@ class ArchitectureTest(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as tmp:
             output_dir = Path(tmp)
-            with patch("capevalkit.api.dispatch", side_effect=fake_dispatch):
+            with patch("capevalkit.interfaces.python_api.dispatch", side_effect=fake_dispatch):
                 results = api.evaluate_caption_model(
                     images=["a.jpg", "b.jpg"],
                     ids=["a", "b"],
@@ -647,7 +648,7 @@ class ArchitectureTest(unittest.TestCase):
             return 0
 
         with tempfile.TemporaryDirectory() as tmp:
-            with patch("capevalkit.api.dispatch", side_effect=fake_dispatch):
+            with patch("capevalkit.interfaces.python_api.dispatch", side_effect=fake_dispatch):
                 results = api.evaluate_captions(
                     pairs=[
                         {"id": "a", "image": "a.jpg", "caption": "caption a", "references": ["ref a"]},
@@ -787,8 +788,8 @@ class ArchitectureTest(unittest.TestCase):
                 references=["ref"],
                 score=1.0,
             )
-            with patch.object(benchmarks, "repo_root", return_value=root):
-                with patch.object(benchmarks, "_load_hf_composite", return_value=[expected]) as loader:
+            with patch.object(benchmark_impl, "repo_root", return_value=root):
+                with patch.object(benchmark_impl, "_load_hf_composite", return_value=[expected]) as loader:
                     items = load_benchmark("composite", str(root / "data"))
         self.assertEqual(items, [expected])
         loader.assert_called_once_with(limit=None)
@@ -803,8 +804,8 @@ class ArchitectureTest(unittest.TestCase):
                 references=["ref"],
                 score=1.0,
             )
-            with patch.object(benchmarks, "repo_root", return_value=root):
-                with patch.object(benchmarks, "_load_hf_flickr8k", return_value=[expected]) as loader:
+            with patch.object(benchmark_impl, "repo_root", return_value=root):
+                with patch.object(benchmark_impl, "_load_hf_flickr8k", return_value=[expected]) as loader:
                     items = load_benchmark("flickr8k-cf", str(root / "data"))
         self.assertEqual(items, [expected])
         loader.assert_called_once_with("cf", limit=None)
@@ -826,8 +827,8 @@ class ArchitectureTest(unittest.TestCase):
                 references=["ref"],
                 score=1.0,
             )
-            with patch.object(benchmarks, "repo_root", return_value=root):
-                with patch.object(benchmarks, "_load_hf_composite", return_value=[expected]) as loader:
+            with patch.object(benchmark_impl, "repo_root", return_value=root):
+                with patch.object(benchmark_impl, "_load_hf_composite", return_value=[expected]) as loader:
                     items = load_benchmark("composite", str(root / "data"), limit=1)
         self.assertEqual(items, [expected])
         loader.assert_called_once_with(limit=1)
@@ -895,7 +896,7 @@ class ArchitectureTest(unittest.TestCase):
             score=0.0,
         )
         with patch.object(
-            benchmarks,
+            benchmark_impl,
             "_load_spica_score_lookup",
             return_value={"hash_id\ta caption": 0.75},
         ):
@@ -1001,7 +1002,7 @@ class ArchitectureTest(unittest.TestCase):
 
             cache_path = root / "nebula-test.jsonl"
             image_dir = root / "nebula-images"
-            with patch("capevalkit.benchmarks._hf_parquet_paths", return_value=["default/test/0000.parquet"]):
+            with patch("capevalkit.infrastructure.benchmarks.legacy._hf_parquet_paths", return_value=["default/test/0000.parquet"]):
                 with patch("fsspec.filesystem", return_value=FakeFs()):
                     benchmarks._write_hf_image_column_cache(
                         repo_id="org/nebula",
@@ -1048,7 +1049,7 @@ class ArchitectureTest(unittest.TestCase):
 
             cache_path = root / "nebula-test-limit1.jsonl"
             image_dir = root / "nebula-images-limit1"
-            with patch("capevalkit.benchmarks._hf_parquet_paths", return_value=["default/test/0000.parquet"]):
+            with patch("capevalkit.infrastructure.benchmarks.legacy._hf_parquet_paths", return_value=["default/test/0000.parquet"]):
                 with patch("fsspec.filesystem", return_value=FakeFs()):
                     benchmarks._write_hf_image_column_cache(
                         repo_id="org/nebula",
@@ -1100,10 +1101,10 @@ class ArchitectureTest(unittest.TestCase):
             fake_fs = FlakyFs()
             cache_path = root / "nebula-test.jsonl"
             image_dir = root / "nebula-images"
-            with patch("capevalkit.benchmarks._hf_parquet_paths", return_value=["default/test/0000.parquet"]):
+            with patch("capevalkit.infrastructure.benchmarks.legacy._hf_parquet_paths", return_value=["default/test/0000.parquet"]):
                 with patch("fsspec.filesystem", return_value=fake_fs):
-                    with patch("capevalkit.benchmarks._hf_read_retries", return_value=2):
-                        with patch("capevalkit.benchmarks._hf_retry_delay_seconds", return_value=0.0):
+                    with patch("capevalkit.infrastructure.benchmarks.legacy._hf_read_retries", return_value=2):
+                        with patch("capevalkit.infrastructure.benchmarks.legacy._hf_retry_delay_seconds", return_value=0.0):
                             benchmarks._write_hf_image_column_cache(
                                 repo_id="org/nebula",
                                 splits=("test",),
@@ -1136,8 +1137,8 @@ class ArchitectureTest(unittest.TestCase):
                 )
                 kwargs["cache_path"].write_text(json.dumps(item.__dict__) + "\n")
 
-            with patch.object(benchmarks, "HF_BENCHMARK_CACHE", root):
-                with patch.object(benchmarks, "_write_hf_cache", side_effect=fake_writer):
+            with patch.object(benchmark_impl, "HF_BENCHMARK_CACHE", root):
+                with patch.object(benchmark_impl, "_write_hf_cache", side_effect=fake_writer):
                     with ThreadPoolExecutor(max_workers=2) as executor:
                         futures = [
                             executor.submit(
@@ -1549,15 +1550,15 @@ class ArchitectureTest(unittest.TestCase):
             with contextlib.ExitStack() as stack:
                 run_metric = stack.enter_context(
                     patch(
-                        "capevalkit.reproduce.run_metric_on_benchmark",
+                        "capevalkit.interfaces.reproduction.run_metric_on_benchmark",
                         return_value=(0, [], {}),
                     )
                 )
                 write_result = stack.enter_context(
-                    patch("capevalkit.reproduce.write_benchmark_result")
+                    patch("capevalkit.interfaces.reproduction.write_benchmark_result")
                 )
                 stack.enter_context(
-                    patch("capevalkit.reproduce.compare_results", return_value=[])
+                    patch("capevalkit.interfaces.reproduction.compare_results", return_value=[])
                 )
                 stack.enter_context(contextlib.redirect_stdout(io.StringIO()))
                 code, results = run_all_reproduce(
@@ -1617,13 +1618,13 @@ class ArchitectureTest(unittest.TestCase):
             with contextlib.ExitStack() as stack:
                 stack.enter_context(
                     patch(
-                        "capevalkit.reproduce.run_metric_on_benchmark",
+                        "capevalkit.interfaces.reproduction.run_metric_on_benchmark",
                         return_value=(0, [], {}),
                     )
                 )
-                stack.enter_context(patch("capevalkit.reproduce.write_benchmark_result"))
-                stack.enter_context(patch("capevalkit.reproduce.compare_results", return_value=[]))
-                stack.enter_context(patch("capevalkit.reproduce.ReproduceProgress", FakeProgress))
+                stack.enter_context(patch("capevalkit.interfaces.reproduction.write_benchmark_result"))
+                stack.enter_context(patch("capevalkit.interfaces.reproduction.compare_results", return_value=[]))
+                stack.enter_context(patch("capevalkit.interfaces.reproduction.ReproduceProgress", FakeProgress))
                 stdout = stack.enter_context(contextlib.redirect_stdout(io.StringIO()))
                 run_all_reproduce(
                     metrics=["bleu", "rouge"],
@@ -1654,15 +1655,15 @@ class ArchitectureTest(unittest.TestCase):
             with contextlib.ExitStack() as stack:
                 run_metric = stack.enter_context(
                     patch(
-                        "capevalkit.reproduce.run_metric_on_benchmark",
+                        "capevalkit.interfaces.reproduction.run_metric_on_benchmark",
                         return_value=(0, [], {}),
                     )
                 )
                 write_result = stack.enter_context(
-                    patch("capevalkit.reproduce.write_benchmark_result")
+                    patch("capevalkit.interfaces.reproduction.write_benchmark_result")
                 )
                 stack.enter_context(
-                    patch("capevalkit.reproduce.compare_results", return_value=[])
+                    patch("capevalkit.interfaces.reproduction.compare_results", return_value=[])
                 )
                 stack.enter_context(contextlib.redirect_stdout(io.StringIO()))
                 code, results = run_all_reproduce(
@@ -1697,12 +1698,12 @@ class ArchitectureTest(unittest.TestCase):
             with contextlib.ExitStack() as stack:
                 run_metric = stack.enter_context(
                     patch(
-                        "capevalkit.reproduce.run_metric_on_benchmark",
+                        "capevalkit.interfaces.reproduction.run_metric_on_benchmark",
                         side_effect=lambda metric, benchmark, **_: call_order.append(metric) or (0, [], {}),
                     )
                 )
-                stack.enter_context(patch("capevalkit.reproduce.write_benchmark_result"))
-                stack.enter_context(patch("capevalkit.reproduce.compare_results", return_value=[]))
+                stack.enter_context(patch("capevalkit.interfaces.reproduction.write_benchmark_result"))
+                stack.enter_context(patch("capevalkit.interfaces.reproduction.compare_results", return_value=[]))
                 stack.enter_context(contextlib.redirect_stdout(io.StringIO()))
                 code, results = run_all_reproduce(
                     metrics=["clipscore", "vela"],
@@ -1732,11 +1733,11 @@ class ArchitectureTest(unittest.TestCase):
                 expected.write_text("{}")
             with contextlib.ExitStack() as stack:
                 run_metric = stack.enter_context(
-                    patch("capevalkit.reproduce.run_metric_on_benchmark", return_value=(0, [], {}))
+                    patch("capevalkit.interfaces.reproduction.run_metric_on_benchmark", return_value=(0, [], {}))
                 )
-                stack.enter_context(patch("capevalkit.reproduce.repo_root", return_value=root))
-                stack.enter_context(patch("capevalkit.reproduce.write_benchmark_result"))
-                stack.enter_context(patch("capevalkit.reproduce.compare_results", return_value=[]))
+                stack.enter_context(patch("capevalkit.interfaces.reproduction.repo_root", return_value=root))
+                stack.enter_context(patch("capevalkit.interfaces.reproduction.write_benchmark_result"))
+                stack.enter_context(patch("capevalkit.interfaces.reproduction.compare_results", return_value=[]))
                 stack.enter_context(contextlib.redirect_stdout(io.StringIO()))
                 code, results = run_all_reproduce(
                     metrics=["pacscore-vitl", "refpacscore-vitl"],
@@ -1763,11 +1764,11 @@ class ArchitectureTest(unittest.TestCase):
                 expected.write_text("{}")
             with contextlib.ExitStack() as stack:
                 run_metric = stack.enter_context(
-                    patch("capevalkit.reproduce.run_metric_on_benchmark", return_value=(0, [], {}))
+                    patch("capevalkit.interfaces.reproduction.run_metric_on_benchmark", return_value=(0, [], {}))
                 )
-                stack.enter_context(patch("capevalkit.reproduce.repo_root", return_value=root))
-                stack.enter_context(patch("capevalkit.reproduce.write_benchmark_result"))
-                stack.enter_context(patch("capevalkit.reproduce.compare_results", return_value=[]))
+                stack.enter_context(patch("capevalkit.interfaces.reproduction.repo_root", return_value=root))
+                stack.enter_context(patch("capevalkit.interfaces.reproduction.write_benchmark_result"))
+                stack.enter_context(patch("capevalkit.interfaces.reproduction.compare_results", return_value=[]))
                 stack.enter_context(contextlib.redirect_stdout(io.StringIO()))
                 code, results = run_all_reproduce(
                     metrics=["pacscore", "refpacscore"],
@@ -1794,11 +1795,11 @@ class ArchitectureTest(unittest.TestCase):
                 expected.write_text("{}")
             with contextlib.ExitStack() as stack:
                 run_metric = stack.enter_context(
-                    patch("capevalkit.reproduce.run_metric_on_benchmark", return_value=(0, [], {}))
+                    patch("capevalkit.interfaces.reproduction.run_metric_on_benchmark", return_value=(0, [], {}))
                 )
-                stack.enter_context(patch("capevalkit.reproduce.repo_root", return_value=root))
-                stack.enter_context(patch("capevalkit.reproduce.write_benchmark_result"))
-                stack.enter_context(patch("capevalkit.reproduce.compare_results", return_value=[]))
+                stack.enter_context(patch("capevalkit.interfaces.reproduction.repo_root", return_value=root))
+                stack.enter_context(patch("capevalkit.interfaces.reproduction.write_benchmark_result"))
+                stack.enter_context(patch("capevalkit.interfaces.reproduction.compare_results", return_value=[]))
                 stack.enter_context(contextlib.redirect_stdout(io.StringIO()))
                 code, results = run_all_reproduce(
                     metrics=["pacscorepp", "refpacscorepp"],
@@ -1824,9 +1825,9 @@ class ArchitectureTest(unittest.TestCase):
             expected.write_text("{}")
             with contextlib.ExitStack() as stack:
                 run_metric = stack.enter_context(
-                    patch("capevalkit.reproduce.run_metric_on_benchmark")
+                    patch("capevalkit.interfaces.reproduction.run_metric_on_benchmark")
                 )
-                stack.enter_context(patch("capevalkit.reproduce.repo_root", return_value=root))
+                stack.enter_context(patch("capevalkit.interfaces.reproduction.repo_root", return_value=root))
                 stack.enter_context(contextlib.redirect_stdout(io.StringIO()))
                 code, results = run_all_reproduce(
                     metrics=["clipscore"],
@@ -1861,7 +1862,7 @@ class ArchitectureTest(unittest.TestCase):
                 benchmark="nebula",
                 resource="gpu",
             )
-            with patch("capevalkit.reproduce.repo_root", return_value=root):
+            with patch("capevalkit.interfaces.reproduction.repo_root", return_value=root):
                 missing = missing_job_prerequisite(job, data_root=str(root / "data"))
 
         self.assertIsNone(missing)
@@ -1878,9 +1879,9 @@ class ArchitectureTest(unittest.TestCase):
                 expected.write_text("{}")
             with contextlib.ExitStack() as stack:
                 run_metric = stack.enter_context(
-                    patch("capevalkit.reproduce.run_metric_on_benchmark")
+                    patch("capevalkit.interfaces.reproduction.run_metric_on_benchmark")
                 )
-                stack.enter_context(patch("capevalkit.reproduce.repo_root", return_value=root))
+                stack.enter_context(patch("capevalkit.interfaces.reproduction.repo_root", return_value=root))
                 stack.enter_context(contextlib.redirect_stdout(io.StringIO()))
                 code, results = run_all_reproduce(
                     metrics=["fleur", "reffleur"],
@@ -1911,13 +1912,13 @@ class ArchitectureTest(unittest.TestCase):
             with contextlib.ExitStack() as stack:
                 run_metric = stack.enter_context(
                     patch(
-                        "capevalkit.reproduce.run_metric_on_benchmark",
+                        "capevalkit.interfaces.reproduction.run_metric_on_benchmark",
                         return_value=(0, [], {}),
                     )
                 )
-                stack.enter_context(patch("capevalkit.reproduce.write_benchmark_result"))
-                stack.enter_context(patch("capevalkit.reproduce.compare_results", return_value=[]))
-                stack.enter_context(patch("capevalkit.reproduce.repo_root", return_value=root))
+                stack.enter_context(patch("capevalkit.interfaces.reproduction.write_benchmark_result"))
+                stack.enter_context(patch("capevalkit.interfaces.reproduction.compare_results", return_value=[]))
+                stack.enter_context(patch("capevalkit.interfaces.reproduction.repo_root", return_value=root))
                 stack.enter_context(contextlib.redirect_stdout(io.StringIO()))
                 code, results = run_all_reproduce(
                     metrics=["fleur"],
@@ -2006,10 +2007,10 @@ class ArchitectureTest(unittest.TestCase):
             )
             with contextlib.ExitStack() as stack:
                 stack.enter_context(
-                    patch("capevalkit.reproduce.run_metric_on_benchmark", return_value=(0, [], {}))
+                    patch("capevalkit.interfaces.reproduction.run_metric_on_benchmark", return_value=(0, [], {}))
                 )
-                stack.enter_context(patch("capevalkit.reproduce.write_benchmark_result"))
-                stack.enter_context(patch("capevalkit.reproduce.compare_results", return_value=[comparison]))
+                stack.enter_context(patch("capevalkit.interfaces.reproduction.write_benchmark_result"))
+                stack.enter_context(patch("capevalkit.interfaces.reproduction.compare_results", return_value=[comparison]))
                 stack.enter_context(contextlib.redirect_stdout(io.StringIO()))
                 code, results = run_all_reproduce(
                     metrics=["metric"],

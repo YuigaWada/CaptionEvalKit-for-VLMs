@@ -16,17 +16,17 @@ from typing import Any, Callable
 from urllib.parse import quote
 from urllib.request import urlopen
 
-from .correlations import kendall_correlations
-from .domain.benchmarks import BenchmarkItem
-from .domain.evaluation import (
+from capevalkit.domain.benchmarks import BenchmarkItem
+from capevalkit.domain.evaluation import (
     DEFAULT_SCORE_KEYS,
     BenchmarkModePolicy,
     MetricOutputNormalizationPolicy,
     ScoreKeyPolicy,
 )
-from .dispatcher import dispatch
-from .manifests import get_manifest
-from .paths import repo_root
+from capevalkit.domain.evaluation.correlations import kendall_correlations
+from capevalkit.infrastructure.execution.dispatcher import dispatch
+from capevalkit.infrastructure.manifests.catalog import get_manifest
+from capevalkit.infrastructure.runtime.paths import repo_root
 
 HF_BENCHMARK_CACHE = repo_root() / ".hf-cache" / "benchmarks"
 DEFAULT_HF_COMPOSITE_REPO = "yuwd/Composite"

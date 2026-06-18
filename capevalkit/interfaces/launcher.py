@@ -4,10 +4,10 @@ import os
 from pathlib import Path
 import sys
 
-from . import cli
-from .context import default_context
-from .runtime import RuntimeManager
-from .runtime_env import apply_runtime_environment
+from capevalkit.interfaces import cli
+from capevalkit.infrastructure.runtime.context import default_context
+from capevalkit.infrastructure.runtime.environment import apply_runtime_environment
+from capevalkit.infrastructure.runtime.manager import RuntimeManager
 
 
 def configure_environment(root: Path | None = None) -> Path:

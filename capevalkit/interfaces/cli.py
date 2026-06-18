@@ -6,18 +6,19 @@ import os
 from pathlib import Path
 import shutil
 
-from .application.use_cases import cli_commands as use_cases
-from .benchmarks import LONGCAPARENA_BENCHMARKS, benchmark_metric
-from .dispatcher import print_command
-from .domain.evaluation import ReferenceRequirementPolicy
-from .infrastructure.execution import UvSubprocessMetricRunner
-from .infrastructure.manifests import TomlMetricManifestRepository
-from .infrastructure.runtime import GitRuntimeGateway
-from .manifests import get_manifest
-from .paths import metrics_root
-from .paths import repo_root
-from .runtime import RuntimeManager
-from .reproduce import (
+from capevalkit.application.use_cases import cli_commands as use_cases
+from capevalkit.infrastructure.benchmarks.legacy import LONGCAPARENA_BENCHMARKS, benchmark_metric
+from capevalkit.domain.evaluation import ReferenceRequirementPolicy
+from capevalkit.application.verification_service import verify_results
+from capevalkit.infrastructure.execution.dispatcher import print_command
+from capevalkit.infrastructure.execution import UvSubprocessMetricRunner
+from capevalkit.infrastructure.manifests import TomlMetricManifestRepository
+from capevalkit.infrastructure.manifests.catalog import get_manifest
+from capevalkit.infrastructure.runtime import GitRuntimeGateway
+from capevalkit.infrastructure.runtime.manager import RuntimeManager
+from capevalkit.infrastructure.runtime.paths import metrics_root
+from capevalkit.infrastructure.runtime.paths import repo_root
+from capevalkit.interfaces.reproduction import (
     DEFAULT_REPRO_BENCHMARKS,
     DEFAULT_REPRO_METRICS,
     default_expected_root,
@@ -28,7 +29,6 @@ from .reproduce import (
     should_color,
     write_summary,
 )
-from .verify import verify_results
 
 
 def _split_remainder(values: list[str]) -> list[str]:
@@ -184,7 +184,7 @@ def verify(args: argparse.Namespace) -> int:
 
 
 def download_assets_command(args: argparse.Namespace) -> int:
-    from .downloads import (
+    from capevalkit.infrastructure.assets.downloads import (
         DOWNLOADABLE_ASSETS,
         download_assets,
         format_asset_rows,

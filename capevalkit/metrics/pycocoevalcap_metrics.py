@@ -5,8 +5,8 @@ import json
 from pathlib import Path
 from typing import Any
 
-from capevalkit.compat import zip_strict
-from capevalkit.progress import progress_iter
+from capevalkit.shared.compat import zip_strict
+from capevalkit.infrastructure.execution.progress import progress_iter
 
 
 def _read_jsonl(path: str) -> list[dict[str, Any]]:

@@ -8,8 +8,8 @@ from typing import Any
 from PIL import Image
 from torch.utils.data import DataLoader, Dataset
 
-from capevalkit.compat import zip_strict
-from capevalkit.progress import progress_update
+from capevalkit.shared.compat import zip_strict
+from capevalkit.infrastructure.execution.progress import progress_update
 
 
 VALID_MODES = ("desc", "rel", "flu")

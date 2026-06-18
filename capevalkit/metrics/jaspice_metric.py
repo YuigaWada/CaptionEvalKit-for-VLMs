@@ -11,7 +11,7 @@ import time
 from typing import Any
 from urllib.parse import urlparse
 
-from capevalkit.compat import zip_strict
+from capevalkit.shared.compat import zip_strict
 
 DEFAULT_SERVER_URL = "http://localhost:2115"
 DEFAULT_DOCKER_IMAGE = "capevalkit-jaspice:latest"

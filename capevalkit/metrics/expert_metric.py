@@ -10,9 +10,9 @@ from typing import Any
 
 from PIL import Image
 
-from capevalkit.compat import zip_strict
-from capevalkit.paths import repo_root
-from capevalkit.progress import progress_iter
+from capevalkit.shared.compat import zip_strict
+from capevalkit.infrastructure.runtime.paths import repo_root
+from capevalkit.infrastructure.execution.progress import progress_iter
 
 
 DEFAULT_MODEL_PATH = "hjkim811/EXPERT-llava-13b-lora"
