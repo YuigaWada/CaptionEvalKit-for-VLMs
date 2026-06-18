@@ -198,6 +198,8 @@ def compute(
         conv.append_message(conv.roles[1], None)
         with Image.open(image_path) as image_file:
             image = image_file.convert("RGB")
+        image_tensor = llava.process_images(
+            [image],
             image_processor,
             SimpleNamespace(image_aspect_ratio=image_aspect_ratio),
         )
