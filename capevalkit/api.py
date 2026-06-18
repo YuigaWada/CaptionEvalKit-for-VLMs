@@ -14,9 +14,9 @@ from .benchmarks import (
 )
 from .compat import zip_strict
 from .dispatcher import dispatch
+from .domain.evaluation import ReferenceRequirementPolicy
 from .manifests import get_manifest, load_manifests
 from .paths import repo_root
-from .reproduce import NO_REFERENCE_METRICS
 
 
 @dataclass(frozen=True)
@@ -484,7 +484,7 @@ def _metric_score_command(
 ) -> list[str]:
     manifest = get_manifest(metric)
     command = [*manifest.runner, "--predictions", str(predictions), "--output", str(output), *extra_args]
-    if metric not in NO_REFERENCE_METRICS:
+    if ReferenceRequirementPolicy().use_references(metric):
         command[command.index("--output"):command.index("--output")] = ["--references", str(references)]
     return command
 

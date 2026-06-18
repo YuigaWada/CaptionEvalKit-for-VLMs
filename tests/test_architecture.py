@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ast
 from concurrent.futures import ThreadPoolExecutor
 import contextlib
 import importlib.machinery
@@ -439,6 +440,115 @@ class ArchitectureTest(unittest.TestCase):
         self.assertTrue(_use_references("vela", no_references=False))
         self.assertFalse(_use_references("expert", no_references=False))
         self.assertFalse(_use_references("vela", no_references=True))
+
+    def test_domain_layer_does_not_import_outer_runtime_concerns(self) -> None:
+        forbidden = (
+            "argparse",
+            "subprocess",
+            "urllib",
+            "fsspec",
+            "datasets",
+            "capevalkit.application",
+            "capevalkit.infrastructure",
+            "capevalkit.cli",
+            "capevalkit.dispatcher",
+            "capevalkit.runtime",
+            "capevalkit.paths",
+        )
+        for path in Path("capevalkit/domain").rglob("*.py"):
+            with self.subTest(path=str(path)):
+                imports = self._module_imports(path)
+                self.assertFalse(
+                    [
+                        name
+                        for name in imports
+                        if any(name == item or name.startswith(f"{item}.") for item in forbidden)
+                    ],
+                    f"{path} imports an outer/runtime concern",
+                )
+
+    def test_application_layer_does_not_import_concrete_infrastructure(self) -> None:
+        forbidden = (
+            "capevalkit.infrastructure",
+            "capevalkit.cli",
+            "capevalkit.dispatcher",
+            "capevalkit.runtime",
+        )
+        for path in Path("capevalkit/application").rglob("*.py"):
+            with self.subTest(path=str(path)):
+                imports = self._module_imports(path)
+                self.assertFalse(
+                    [
+                        name
+                        for name in imports
+                        if any(name == item or name.startswith(f"{item}.") for item in forbidden)
+                    ],
+                    f"{path} imports concrete infrastructure",
+                )
+
+    def test_score_captions_use_case_runs_with_fake_runner(self) -> None:
+        from capevalkit.application.ports import MetricRunResult
+        from capevalkit.application.use_cases import cli_commands as use_cases
+        from capevalkit.domain.metrics import MetricManifest
+
+        class Repository:
+            def list(self):
+                return {}
+
+            def get(self, metric_id: str) -> MetricManifest:
+                return MetricManifest(
+                    name=metric_id,
+                    python=">=3.10",
+                    module="module",
+                    benchmark_module=None,
+                    repo_dir="metrics/upstreams/demo",
+                    repo_url=None,
+                    uv_project="metrics/upstreams/demo",
+                    runner=("python", "score.py"),
+                    benchmarks={},
+                    smoke_command=(),
+                    merge_policy="single",
+                    path=Path("metrics/demo/metric.toml"),
+                )
+
+        class Runner:
+            request = None
+
+            def run(self, request):
+                self.request = request
+                return MetricRunResult(0)
+
+        runner = Runner()
+        code = use_cases.score_captions(
+            use_cases.ScoreCaptionsRequest(
+                metric="demo",
+                predictions=Path("predictions.jsonl"),
+                references=Path("references.jsonl"),
+                output=Path("out.json"),
+                image_dir=Path("images"),
+                extra_args=["--batch-size", "2"],
+            ),
+            repository=Repository(),
+            runner=runner,
+        )
+
+        self.assertEqual(code, 0)
+        self.assertEqual(runner.request.metric_name, "demo")
+        self.assertIn("--predictions", runner.request.args)
+        self.assertIn("--references", runner.request.args)
+        self.assertIn("--image-dir", runner.request.args)
+        self.assertEqual(runner.request.args[-2:], ["--batch-size", "2"])
+
+    @staticmethod
+    def _module_imports(path: Path) -> set[str]:
+        imports: set[str] = set()
+        tree = ast.parse(path.read_text(), filename=str(path))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                imports.update(alias.name for alias in node.names)
+            elif isinstance(node, ast.ImportFrom) and node.module:
+                imports.add(node.module)
+        return imports
 
     def test_evaluate_metric_calls_python_metric_with_samples(self) -> None:
         items = [

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from copy import deepcopy
 from contextlib import contextmanager
-from dataclasses import dataclass
 import ast
 import csv
 from functools import lru_cache
@@ -18,36 +17,16 @@ from urllib.parse import quote
 from urllib.request import urlopen
 
 from .correlations import kendall_correlations
+from .domain.benchmarks import BenchmarkItem
+from .domain.evaluation import (
+    DEFAULT_SCORE_KEYS,
+    BenchmarkModePolicy,
+    MetricOutputNormalizationPolicy,
+    ScoreKeyPolicy,
+)
 from .dispatcher import dispatch
 from .manifests import get_manifest
 from .paths import repo_root
-
-DEFAULT_SCORE_KEYS = {
-    "bleu": "BLEU-4",
-    "rouge": "ROUGE-L",
-    "meteor": "METEOR",
-    "cider": "CIDEr",
-    "spice": "SPICE",
-    "jaspice": "JaSPICE",
-    "clipscore": "CLIPScore",
-    "clipscore-vitl": "CLIPScore",
-    "clipscoreavg": "CLIPScoreavg",
-    "refclipscore": "RefCLIPScore",
-    "refclipscore-vitl": "RefCLIPScore",
-    "pacscore": "PAC-S",
-    "pacscore-vitl": "PAC-S",
-    "pacscoreavg": "PAC-Savg",
-    "refpacscore": "RefPAC-S",
-    "refpacscore-vitl": "RefPAC-S",
-    "pacscorepp": "PAC-S++",
-    "pacscoreppavg": "PAC-S++avg",
-    "refpacscorepp": "RefPAC-S++",
-    "polos": "Polos",
-    "vela": "VELA",
-    "fleur": "FLEUR",
-    "reffleur": "RefFLEUR",
-    "expert": "EXPERT",
-}
 
 HF_BENCHMARK_CACHE = repo_root() / ".hf-cache" / "benchmarks"
 DEFAULT_HF_COMPOSITE_REPO = "yuwd/Composite"
@@ -58,7 +37,6 @@ HF_SPICA_REPO = "hiranohachiman/Spica"
 HF_LONGCAP_ARENA_REPO = "Ka2ukiMatsuda/LongCap-Arena"
 SPICA_SPLIT_FILES = ("spica_train.csv", "spica_val.csv", "spica_test.csv")
 _HF_CACHE_THREAD_LOCK = threading.Lock()
-_ITEM_METADATA_KEYS = {"id", "score", "scores", "ground_truth_score", "caption", "image", "references"}
 try:
     import fcntl
 except ImportError:  # pragma: no cover - non-POSIX fallback
@@ -71,15 +49,6 @@ LONGCAPARENA_BENCHMARKS = {
     "longcaparena-testb-rel": ("dci_test.rel", "rel", "rel_dci_test.csv"),
     "longcaparena-testb-flu": ("dci_test.flu", "flu", "flu_dci_test.csv"),
 }
-
-
-@dataclass(frozen=True)
-class BenchmarkItem:
-    id: str
-    image: str
-    caption: str
-    references: list[str]
-    score: float
 
 
 def _literal_refs(value: Any) -> list[str]:
@@ -833,56 +802,15 @@ def _write_jsonl(path: Path, rows: list[dict[str, Any]]) -> None:
 
 
 def _score_values(metric_output: dict[str, Any], score_key: str | None = None) -> tuple[str, dict[str, float]]:
-    for key, value in metric_output.items():
-        if score_key and key != score_key:
-            continue
-        if isinstance(value, dict) and isinstance(value.get("per_item"), dict):
-            return key, {str(item_id): _extract_item_score(score, key) for item_id, score in value["per_item"].items()}
-    if isinstance(metric_output.get("per_item"), dict):
-        per_item = metric_output["per_item"]
-        first = next(iter(per_item.values()), None)
-        if isinstance(first, dict):
-            key = score_key or _default_item_score_key(first)
-            return key, {str(item_id): _extract_item_score(scores, key) for item_id, scores in per_item.items()}
-        key = score_key or "score"
-        return key, {str(item_id): _extract_item_score(score, key) for item_id, score in per_item.items()}
-    raise ValueError("metric output does not contain per_item scores")
+    return MetricOutputNormalizationPolicy().score_values(metric_output, score_key)
 
 
 def _default_item_score_key(value: Any) -> str:
-    if not isinstance(value, dict):
-        return "score"
-    scores = value.get("scores")
-    if isinstance(scores, dict) and scores:
-        return str(next(iter(scores)))
-    if "score" in value:
-        return "score"
-    return str(next(iter(value)))
+    return MetricOutputNormalizationPolicy().default_item_score_key(value)
 
 
 def _extract_item_score(value: Any, score_key: str | None) -> float:
-    if not isinstance(value, dict):
-        return float(value)
-    if score_key and score_key in value:
-        return float(value[score_key])
-    scores = value.get("scores")
-    if isinstance(scores, dict):
-        if score_key and score_key in scores:
-            return float(scores[score_key])
-        if "score" in scores:
-            return float(scores["score"])
-        for score in scores.values():
-            return float(score)
-    if "score" in value:
-        return float(value["score"])
-    for key, score in value.items():
-        if key in _ITEM_METADATA_KEYS:
-            continue
-        try:
-            return float(score)
-        except (TypeError, ValueError):
-            continue
-    raise ValueError("per_item entry does not contain a numeric metric score")
+    return MetricOutputNormalizationPolicy().extract_item_score(value, score_key)
 
 
 def _enrich_metric_output(
@@ -931,20 +859,7 @@ def _enrich_per_item_scores(
 
 
 def _item_score_map(value: Any) -> dict[str, float]:
-    if not isinstance(value, dict):
-        return {}
-    scores = value.get("scores")
-    if isinstance(scores, dict):
-        return {str(key): float(score) for key, score in scores.items()}
-    output = {}
-    for key, score in value.items():
-        if key in _ITEM_METADATA_KEYS:
-            continue
-        try:
-            output[str(key)] = float(score)
-        except (TypeError, ValueError):
-            continue
-    return output
+    return MetricOutputNormalizationPolicy().item_score_map(value)
 
 
 def _kendall(values: list[float], targets: list[float]) -> dict[str, float]:
@@ -1000,11 +915,10 @@ def run_metric_on_benchmark(
     items = load_benchmark(benchmark_name, data_root, limit=limit)
     if not items:
         raise ValueError(f"{benchmark_name} has no benchmark items")
-    metric_args = metric_args or []
-    if metric_name == "vela" and benchmark_name in LONGCAPARENA_BENCHMARKS:
-        mode = longcaparena_mode(benchmark_name)
-        if mode and "--mode" not in metric_args:
-            metric_args = ["--mode", mode, *metric_args]
+    mode_policy = BenchmarkModePolicy(
+        {name: mode for name, (_, mode, _) in LONGCAPARENA_BENCHMARKS.items()}
+    )
+    metric_args = mode_policy.metric_args(metric_name, benchmark_name, metric_args)
     with tempfile.TemporaryDirectory() as tmp:
         tmp_path = Path(tmp)
         predictions = tmp_path / "predictions.jsonl"
@@ -1070,9 +984,10 @@ def benchmark_result(
     metric_output: dict[str, Any],
     score_key: str | None = None,
 ) -> dict[str, Any]:
-    score_key = score_key or DEFAULT_SCORE_KEYS.get(metric_name)
-    if metric_name == "vela" and benchmark_name in LONGCAPARENA_BENCHMARKS:
-        score_key = score_key or "VELA"
+    score_key = ScoreKeyPolicy(
+        DEFAULT_SCORE_KEYS,
+        longcaparena_benchmarks=set(LONGCAPARENA_BENCHMARKS),
+    ).score_key(metric_name, benchmark_name, score_key)
     score_name, per_item = _score_values(metric_output, score_key)
     ordered_scores = [per_item[item.id] for item in items]
     human_scores = [item.score for item in items]
