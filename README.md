@@ -345,6 +345,7 @@ Legend: `✅` reproduced, `⚠️` not reproduced, `-` no default target. For Lo
 | `bleu` | ✅ | ✅ | ✅ | ✅ | ✅ | - | - |
 | `cider` | ✅ | ✅ | ✅ | ✅ | ✅ | - | - |
 | `clipscore` | ✅ | ✅ | ✅ | ✅ | ✅ | - | - |
+| `expert` | ✅ | ✅ | ✅ | ✅ | ✅ | - | - |
 | `fleur` | ⚠️ | ⚠️ | ✅ | - | - | - | - |
 | `meteor` | ✅ | ✅ | ✅ | ✅ | ✅ | - | - |
 | `pacscore` | ✅ | ✅ | ✅ | ✅ | ✅ | - | - |
@@ -409,6 +410,7 @@ Model files and checkpoints are downloaded on first use by the corresponding met
 | PACScore | PACScore checkpoint URL, fetched on first PACScore run |
 | Polos | upstream Polos model cache, fetched on first Polos run |
 | FLEUR | Hugging Face `liuhaotian/llava-v1.5-13b` |
+| EXPERT | Hugging Face `liuhaotian/llava-v1.5-13b`, `hjkim811/EXPERT-llava-13b-lora` |
 | VELA | Hugging Face `Qwen/Qwen2.5-3B-Instruct`, `BeichenZhang/LongCLIP-L`, `Ka2ukiMatsuda/vela` |
 
 Set `IC_EVAL_REFRESH_HF_CACHE=1` to refresh cached benchmark rows and extracted images.
