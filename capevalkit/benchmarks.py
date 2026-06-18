@@ -46,6 +46,7 @@ DEFAULT_SCORE_KEYS = {
     "vela": "VELA",
     "fleur": "FLEUR",
     "reffleur": "RefFLEUR",
+    "expert": "EXPERT",
 }
 
 HF_BENCHMARK_CACHE = repo_root() / ".hf-cache" / "benchmarks"

@@ -283,6 +283,73 @@ class ArchitectureTest(unittest.TestCase):
                 commands,
             )
 
+    def test_runtime_manager_initializes_source_submodule_with_missing_nested_submodule(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            resources = root / "resources"
+            checkout = root / "checkout"
+            upstream = checkout / "metrics" / "upstreams" / "demo"
+            lock = root / "lock.json"
+            upstream.mkdir(parents=True)
+            (upstream / ".git").write_text("gitdir: ../../../.git/modules/demo\n")
+            resources.mkdir()
+            lock.write_text(
+                json.dumps(
+                    {
+                        "schema_version": 1,
+                        "upstreams": {
+                            "demo": {
+                                "source": "git",
+                                "url": "https://example.test/demo.git",
+                                "rev": "abc123",
+                                "path": "metrics/upstreams/demo",
+                                "uv_project": "metrics/upstreams/demo",
+                                "overlays": [],
+                            }
+                        },
+                    }
+                )
+            )
+            context = ProjectContext(
+                package_root=root,
+                resource_root=resources,
+                project_root=checkout,
+                cache_root=root / "cache",
+                source_root=checkout,
+                source_mode=True,
+                lock_path=lock,
+                lock_digest="digest",
+            )
+            commands: list[list[str]] = []
+            updated = False
+
+            def fake_run(command, **kwargs):
+                nonlocal updated
+                commands.append(command)
+                if command[:3] == ["git", "submodule", "status"]:
+                    if updated:
+                        return subprocess.CompletedProcess(
+                            command,
+                            0,
+                            stdout=" abc123 metrics/upstreams/demo\n fff111 metrics/upstreams/demo/nested\n",
+                        )
+                    return subprocess.CompletedProcess(
+                        command,
+                        0,
+                        stdout=" abc123 metrics/upstreams/demo\n-fff111 metrics/upstreams/demo/nested\n",
+                    )
+                if command[:3] == ["git", "submodule", "update"]:
+                    updated = True
+                return subprocess.CompletedProcess(command, 0, stdout="")
+
+            with patch("capevalkit.runtime.subprocess.run", side_effect=fake_run):
+                RuntimeManager(context).ensure_upstream("demo")
+
+            self.assertIn(
+                ["git", "submodule", "update", "--init", "--recursive", "metrics/upstreams/demo"],
+                commands,
+            )
+
     def test_launcher_preserves_invocation_cwd(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             cwd = Path.cwd()
@@ -370,6 +437,7 @@ class ArchitectureTest(unittest.TestCase):
         self.assertFalse(_use_references("fleur", no_references=False))
         self.assertTrue(_use_references("reffleur", no_references=False))
         self.assertTrue(_use_references("vela", no_references=False))
+        self.assertFalse(_use_references("expert", no_references=False))
         self.assertFalse(_use_references("vela", no_references=True))
 
     def test_evaluate_metric_calls_python_metric_with_samples(self) -> None:
@@ -517,7 +585,7 @@ class ArchitectureTest(unittest.TestCase):
             self.assertFalse((root / "metrics" / "upstreams" / "skipped" / "uv.toml").exists())
 
     def test_python310_upstream_overlays_include_tomli(self) -> None:
-        upstreams = ["pycocoevalcap", "polos", "fleur", "vela", "jaspice"]
+        upstreams = ["pycocoevalcap", "polos", "fleur", "vela", "jaspice", "expert"]
         for upstream in upstreams:
             path = Path("overlays") / "metrics" / "upstreams" / upstream / "pyproject.toml"
             dependencies = tomllib.loads(path.read_text())["project"]["dependencies"]
@@ -553,6 +621,7 @@ class ArchitectureTest(unittest.TestCase):
             "reffleur": "metrics/upstreams/fleur",
             "vela": "metrics/upstreams/vela",
             "jaspice": "metrics/upstreams/jaspice",
+            "expert": "metrics/upstreams/expert",
         }
         for metric, repo in expected_repos.items():
             self.assertEqual(manifests[metric].repo_dir, repo)
@@ -1059,6 +1128,9 @@ class ArchitectureTest(unittest.TestCase):
     def test_jaspice_benchmark_defaults_to_jaspice_score(self) -> None:
         self.assertEqual(DEFAULT_SCORE_KEYS["jaspice"], "JaSPICE")
 
+    def test_expert_benchmark_defaults_to_expert_score(self) -> None:
+        self.assertEqual(DEFAULT_SCORE_KEYS["expert"], "EXPERT")
+
     def test_jaspice_metric_posts_jsonl_scores_to_server(self) -> None:
         from capevalkit.metrics.jaspice_metric import compute_jaspice
 
@@ -1261,7 +1333,7 @@ class ArchitectureTest(unittest.TestCase):
                 self.assertIn("kendall_tau_c", payload["correlations"])
 
     def test_completed_metric_polaris_expected_values_exist(self) -> None:
-        for metric in ["bleu", "rouge", "meteor", "cider", "spice", "clipscore", "pacscore", "polos"]:
+        for metric in ["bleu", "rouge", "meteor", "cider", "spice", "clipscore", "pacscore", "polos", "expert"]:
             path = Path("benchmarks/expected") / metric / "polaris.json"
             payload = json.loads(path.read_text())
             self.assertIn("kendall_tau_c", payload["correlations"])
@@ -1366,14 +1438,17 @@ class ArchitectureTest(unittest.TestCase):
         tasks = expected_tasks(
             expected_root=Path("benchmarks/expected"),
             output_dir=Path("outputs/all-reproduce"),
-            metrics=["fleur", "reffleur", "vela"],
+            metrics=["fleur", "reffleur", "vela", "expert"],
             benchmarks=["composite", "longcaparena-testa-desc"],
         )
         jobs = build_reproduce_jobs(tasks)
         resources = {(job.runner_metric, job.benchmark): job.resource for job in jobs}
+        references = {(job.runner_metric, job.benchmark): job.use_references for job in jobs}
 
         self.assertEqual(resources[("fleur", "composite")], "exclusive-gpu")
         self.assertEqual(resources[("reffleur", "composite")], "exclusive-gpu")
+        self.assertEqual(resources[("expert", "composite")], "exclusive-gpu")
+        self.assertFalse(references[("expert", "composite")])
         self.assertEqual(resources[("vela", "longcaparena-testa-desc")], "exclusive-gpu")
 
     def test_all_reproduce_runs_grouped_classic_metrics_once(self) -> None:

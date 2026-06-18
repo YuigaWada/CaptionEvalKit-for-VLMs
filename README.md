@@ -13,7 +13,7 @@ Reproducible, all-in-one image captioning evaluation for VLMs.
 
 CaptionEvalKit currently supports:
 * **LLM-free metrics:** Polos, CLIPScore, PAC-S, RefCLIPScore, RefPAC-S, and more
-* **LLM-as-a-Judge metrics:** FLEUR, RefFLEUR, and VELA
+* **LLM-as-a-Judge metrics:** FLEUR, RefFLEUR, VELA, and EXPERT
 * **Classic captioning metrics:** BLEU, ROUGE-L, METEOR, CIDEr, SPICE, and JaSPICE
 * **Benchmarks:** Composite, Flickr8k-Ex, Flickr8k-CF, Polaris, Nebula, and LongCap-Arena
 
@@ -366,6 +366,7 @@ Legend: `✅` reproduced, `⚠️` not reproduced, `-` no default target. For Lo
 | `cider` | `pycocoevalcap` | CIDEr |
 | `spice` | `pycocoevalcap` | SPICE |
 | `jaspice` | JaSPICE | Japanese SPICE-style metric; starts the JaSPICE Docker server automatically |
+| `expert` | EXPERT | reference-free LLaVA-based metric with structured-explanation training |
 | `clipscore` | CLIPScore | image-caption CLIPScore |
 | `refclipscore` | CLIPScore | reference-aware CLIPScore |
 | `pacscore` | PACScore | PAC-S |
@@ -436,7 +437,6 @@ data/
 
 ## TODO
 
-- [ ] Implement EXPERT benchmark support.
 - [ ] Improve the first-download UI/UX for `all_reproduce`.
 
 ## Development

@@ -1,0 +1,21 @@
+[project]
+name = "capevalkit-env-expert"
+version = "0.1.0"
+requires-python = ">=3.10,<3.11"
+dependencies = [
+    "bitsandbytes==0.41.0",
+    "llava",
+    "numpy<2",
+    "peft==0.4.0",
+    "pillow",
+    "protobuf>=3.20.3,<5",
+    "scipy",
+    "setuptools<81",
+    "tomli>=2; python_version < '3.11'",
+]
+
+[tool.uv.sources]
+llava = { path = "LLaVA", editable = true }
+
+[tool.uv]
+package = false

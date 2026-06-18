@@ -26,3 +26,7 @@
 	path = metrics/upstreams/jaspice
 	url = https://github.com/keio-smilab23/JaSPICE.git
 	ignore = untracked
+[submodule "expert"]
+	path = metrics/upstreams/expert
+	url = https://github.com/hjkim811/EXPERT.git
+	ignore = untracked

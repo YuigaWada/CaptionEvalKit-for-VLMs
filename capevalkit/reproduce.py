@@ -35,6 +35,7 @@ DEFAULT_REPRO_METRICS = [
     "fleur",
     "reffleur",
     "vela",
+    "expert",
 ]
 DEFAULT_REPRO_BENCHMARKS = ["composite", "flickr8k-ex", "flickr8k-cf", "nebula", "polaris", *LONGCAPARENA_BENCHMARKS]
 DEFAULT_REPRO_LONGCAPARENA_METRICS = ("vela",)
@@ -48,6 +49,7 @@ NO_REFERENCE_METRICS = {
     "pacscorepp",
     "pacscoreppavg",
     "fleur",
+    "expert",
 }
 STATUS_LABELS = {
     "ok": "OK",
@@ -67,6 +69,13 @@ STATUS_COLORS = {
 }
 TOLERANCE_OVERRIDES = {
     ("polos", "composite"): 0.55,
+    # EXPERT is run through 8-bit quantized LLaVA-LoRA on a single 24GB GPU.
+    # The paper values are full EXPERT scores, so allow small point-level drift.
+    ("expert", "composite"): 2.0,
+    ("expert", "flickr8k-ex"): 2.0,
+    ("expert", "flickr8k-cf"): 2.0,
+    ("expert", "nebula"): 2.0,
+    ("expert", "polaris"): 2.0,
     # VELA paper reports mean±std over five runs; the public checkpoint is one released run.
     ("vela", "longcaparena-testa-desc"): 3.0,
     ("vela", "longcaparena-testa-rel"): 3.0,
@@ -94,9 +103,10 @@ GPU_METRICS = {
     "fleur",
     "reffleur",
     "vela",
+    "expert",
 }
 FLEUR_METRICS = {"fleur", "reffleur"}
-EXCLUSIVE_GPU_METRICS = {*FLEUR_METRICS, "vela"}
+EXCLUSIVE_GPU_METRICS = {*FLEUR_METRICS, "vela", "expert"}
 LOCAL_IMAGE_BENCHMARKS = {"nebula", "polaris"}
 
 

@@ -13,6 +13,18 @@
       "url": "https://github.com/jmhessel/clipscore.git",
       "uv_project": "metrics/upstreams/clipscore"
     },
+    "expert": {
+      "overlays": [
+        "overlays/metrics/upstreams/expert/LLaVA/llava/model/builder.py",
+        "overlays/metrics/upstreams/expert/pyproject.toml",
+        "overlays/metrics/upstreams/expert/uv.toml"
+      ],
+      "path": "metrics/upstreams/expert",
+      "rev": "7fbfb00ae8d6cb214ab55c067880ce7acf730efe",
+      "source": "git",
+      "url": "https://github.com/hjkim811/EXPERT.git",
+      "uv_project": "metrics/upstreams/expert"
+    },
     "fleur": {
       "overlays": [
         "overlays/metrics/upstreams/fleur/fleur_wrapper/__init__.py",
