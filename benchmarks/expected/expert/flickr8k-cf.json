@@ -1,0 +1,7 @@
+{
+  "source": "EXPERT ACL 2025 Findings Table 2, EXPERT row",
+  "score_name": "EXPERT",
+  "correlations": {
+    "kendall_tau_b": 39.3
+  }
+}

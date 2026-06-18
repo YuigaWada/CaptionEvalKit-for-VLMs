@@ -195,16 +195,24 @@ class RuntimeManager:
         if not path.exists() or not any(path.iterdir()):
             return False
         if (path / ".git").exists():
-            return True
+            nested_ready = self._source_submodule_tree_is_ready(root, path)
+            return True if nested_ready is None else nested_ready
+        nested_ready = self._source_submodule_tree_is_ready(root, path)
+        return False if nested_ready is None else nested_ready
+
+    def _source_submodule_tree_is_ready(self, root: Path, path: Path) -> bool | None:
         result = subprocess.run(
-            ["git", "submodule", "status", "--", str(path.relative_to(root))],
+            ["git", "submodule", "status", "--recursive", "--", str(path.relative_to(root))],
             cwd=root,
             check=False,
             text=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.DEVNULL,
         )
-        return result.returncode == 0 and bool(result.stdout.strip()) and not result.stdout.lstrip().startswith("-")
+        lines = [line for line in result.stdout.splitlines() if line.strip()]
+        if result.returncode != 0 or not lines:
+            return None
+        return all(not line.lstrip().startswith("-") for line in lines)
 
     def _remove_overlay_only_stub(self, root: Path, path: Path, spec: UpstreamSpec) -> None:
         if not path.exists() or not any(path.iterdir()):

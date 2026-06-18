@@ -1,0 +1,18 @@
+[metric]
+name = "expert"
+python = ">=3.10,<3.11"
+module = "capevalkit.metrics.expert_metric"
+
+[repository]
+dir = "metrics/upstreams/expert"
+url = "https://github.com/hjkim811/EXPERT.git"
+uv_project = "metrics/upstreams/expert"
+
+[runner]
+command = ["python", "-m", "capevalkit.metrics.expert_metric"]
+
+[checks]
+smoke = ["python", "-m", "capevalkit.metrics.expert_metric", "--help"]
+
+[compatibility]
+merge_policy = "llava-heavy-metric"

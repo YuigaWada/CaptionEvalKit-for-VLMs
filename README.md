@@ -13,7 +13,7 @@ Reproducible, all-in-one image captioning evaluation for VLMs.
 
 CaptionEvalKit currently supports:
 * **LLM-free metrics:** Polos, CLIPScore, PAC-S, RefCLIPScore, RefPAC-S, and more
-* **LLM-as-a-Judge metrics:** FLEUR, RefFLEUR, and VELA
+* **LLM-as-a-Judge metrics:** FLEUR, RefFLEUR, VELA, and EXPERT
 * **Classic captioning metrics:** BLEU, ROUGE-L, METEOR, CIDEr, SPICE, and JaSPICE
 * **Benchmarks:** Composite, Flickr8k-Ex, Flickr8k-CF, Polaris, Nebula, and LongCap-Arena
 
@@ -342,6 +342,7 @@ Legend: `✅` reproduced, `⚠️` not reproduced, `-` no default target. For Lo
 | `bleu` | ✅ | ✅ | ✅ | ✅ | ✅ | - | - |
 | `cider` | ✅ | ✅ | ✅ | ✅ | ✅ | - | - |
 | `clipscore` | ✅ | ✅ | ✅ | ✅ | ✅ | - | - |
+| `expert` | ✅ | ✅ | ✅ | ✅ | ✅ | - | - |
 | `fleur` | ⚠️ | ⚠️ | ✅ | - | - | - | - |
 | `meteor` | ✅ | ✅ | ✅ | ✅ | ✅ | - | - |
 | `pacscore` | ✅ | ✅ | ✅ | ✅ | ✅ | - | - |
@@ -363,6 +364,7 @@ Legend: `✅` reproduced, `⚠️` not reproduced, `-` no default target. For Lo
 | `cider` | `pycocoevalcap` | CIDEr |
 | `spice` | `pycocoevalcap` | SPICE |
 | `jaspice` | JaSPICE | Japanese SPICE-style metric; starts the JaSPICE Docker server automatically |
+| `expert` | EXPERT | reference-free LLaVA-based metric with structured-explanation training |
 | `clipscore` | CLIPScore | image-caption CLIPScore |
 | `refclipscore` | CLIPScore | reference-aware CLIPScore |
 | `pacscore` | PACScore | PAC-S |
@@ -405,6 +407,7 @@ Model files and checkpoints are downloaded on first use by the corresponding met
 | PACScore | PACScore checkpoint URL, fetched on first PACScore run |
 | Polos | upstream Polos model cache, fetched on first Polos run |
 | FLEUR | Hugging Face `liuhaotian/llava-v1.5-13b` |
+| EXPERT | Hugging Face `liuhaotian/llava-v1.5-13b`, `hjkim811/EXPERT-llava-13b-lora` |
 | VELA | Hugging Face `Qwen/Qwen2.5-3B-Instruct`, `BeichenZhang/LongCLIP-L`, `Ka2ukiMatsuda/vela` |
 
 Set `IC_EVAL_REFRESH_HF_CACHE=1` to refresh cached benchmark rows and extracted images.
@@ -433,7 +436,6 @@ data/
 
 ## TODO
 
-- [ ] Implement EXPERT benchmark support.
 - [ ] Improve the first-download UI/UX for `all_reproduce`.
 
 ## Development
