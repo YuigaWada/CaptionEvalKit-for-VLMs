@@ -447,14 +447,20 @@ uv run python -m unittest discover -s tests
 Repository map:
 
 ```text
-capevalkit/interfaces/         CLI entrypoint, Python API, presenters
-capevalkit/application/        use cases and verification services
-capevalkit/domain/             evaluation/reproduction policies and value objects
-capevalkit/infrastructure/     runtime, metric execution, assets, manifests, benchmark loaders
-metrics/*/metric.toml          metric manifests
-metrics/upstreams/*            upstream metric repositories
-overlays/metrics/upstreams/*   uv overlays for upstream repositories
-benchmarks/expected/           default all_reproduce expected values
+.
+├── capevalkit/
+│   ├── api.py                 public Python API endpoint
+│   ├── interfaces/            CLI entrypoint, Python API, presenters
+│   ├── application/           use cases and verification services
+│   ├── domain/                evaluation/reproduction policies and value objects
+│   └── infrastructure/        runtime, metric execution, assets, manifests, benchmark loaders
+├── metrics/
+│   ├── */metric.toml          metric manifests
+│   └── upstreams/*            upstream metric repositories
+├── overlays/
+│   └── metrics/upstreams/*    uv overlays for upstream repositories
+└── benchmarks/
+    └── expected/              default all_reproduce expected values
 ```
 
 ## Citation
