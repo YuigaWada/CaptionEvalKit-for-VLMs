@@ -9,9 +9,9 @@ import shutil
 from typing import Any
 from urllib.request import urlopen
 
-from capevalkit.compat import zip_strict
-from capevalkit.paths import repo_root
-from capevalkit.progress import progress_update
+from capevalkit.shared.compat import zip_strict
+from capevalkit.infrastructure.runtime.paths import repo_root
+from capevalkit.infrastructure.execution.progress import progress_update
 
 
 def _pacscore_root() -> Path:

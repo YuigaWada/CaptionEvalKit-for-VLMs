@@ -7,7 +7,7 @@ import shutil
 from pathlib import Path
 import sys
 
-from capevalkit.paths import repo_root
+from capevalkit.infrastructure.runtime.paths import repo_root
 
 
 @contextmanager

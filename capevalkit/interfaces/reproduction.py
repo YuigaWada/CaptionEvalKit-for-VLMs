@@ -10,13 +10,27 @@ import sys
 import threading
 from typing import Callable, Iterable
 
-from .benchmarks import (
+from capevalkit.infrastructure.benchmarks.legacy import (
     LONGCAPARENA_BENCHMARKS,
     run_metric_on_benchmark,
     write_benchmark_result,
 )
-from .paths import repo_root
-from .verify import NumericComparison, compare_results
+from capevalkit.domain.evaluation import NO_REFERENCE_METRICS
+from capevalkit.domain.reproduction import (
+    EXCLUSIVE_GPU_METRICS,
+    FLEUR_METRICS,
+    GPU_METRICS,
+    PYCOCO_METRICS,
+    TOLERANCE_OVERRIDES,
+    JobGroupingPolicy,
+    ReproduceJob,
+    ReproduceResult,
+    ReproduceTask,
+    ResourceRequirementPolicy,
+    TolerancePolicy,
+)
+from capevalkit.application.verification_service import NumericComparison, compare_results
+from capevalkit.infrastructure.runtime.paths import repo_root
 
 
 DEFAULT_REPRO_METRICS = [
@@ -38,18 +52,6 @@ DEFAULT_REPRO_METRICS = [
 ]
 DEFAULT_REPRO_BENCHMARKS = ["composite", "flickr8k-ex", "flickr8k-cf", "nebula", "polaris", *LONGCAPARENA_BENCHMARKS]
 DEFAULT_REPRO_LONGCAPARENA_METRICS = ("vela",)
-NO_REFERENCE_METRICS = {
-    "clipscore",
-    "clipscore-vitl",
-    "clipscoreavg",
-    "pacscore",
-    "pacscore-vitl",
-    "pacscoreavg",
-    "pacscorepp",
-    "pacscoreppavg",
-    "fleur",
-    "expert",
-}
 STATUS_LABELS = {
     "ok": "OK",
     "smoke": "OK",
@@ -66,46 +68,6 @@ STATUS_COLORS = {
     "skip": "33",
     "planned": "36",
 }
-TOLERANCE_OVERRIDES = {
-    ("polos", "composite"): 0.55,
-    # EXPERT is run through 8-bit quantized LLaVA-LoRA on a single 24GB GPU.
-    # The paper values are full EXPERT scores, so allow small point-level drift.
-    ("expert", "composite"): 2.0,
-    ("expert", "flickr8k-ex"): 2.0,
-    ("expert", "flickr8k-cf"): 2.0,
-    ("expert", "nebula"): 2.0,
-    ("expert", "polaris"): 2.0,
-    # VELA paper reports mean±std over five runs; the public checkpoint is one released run.
-    ("vela", "longcaparena-testa-desc"): 3.0,
-    ("vela", "longcaparena-testa-rel"): 3.0,
-    ("vela", "longcaparena-testa-flu"): 3.0,
-    ("vela", "longcaparena-testb-desc"): 3.0,
-    ("vela", "longcaparena-testb-rel"): 3.0,
-    ("vela", "longcaparena-testb-flu"): 3.0,
-}
-PYCOCO_METRICS = ("bleu", "rouge", "meteor", "cider", "spice")
-GPU_METRICS = {
-    "clipscore",
-    "clipscore-vitl",
-    "clipscoreavg",
-    "refclipscore",
-    "refclipscore-vitl",
-    "pacscore",
-    "pacscore-vitl",
-    "pacscoreavg",
-    "refpacscore",
-    "refpacscore-vitl",
-    "pacscorepp",
-    "pacscoreppavg",
-    "refpacscorepp",
-    "polos",
-    "fleur",
-    "reffleur",
-    "vela",
-    "expert",
-}
-FLEUR_METRICS = {"fleur", "reffleur"}
-EXCLUSIVE_GPU_METRICS = {*FLEUR_METRICS, "vela", "expert"}
 LOCAL_IMAGE_BENCHMARKS = {"nebula", "polaris"}
 
 
@@ -113,34 +75,6 @@ def default_reproduce_pair(metric: str, benchmark: str) -> bool:
     if benchmark in LONGCAPARENA_BENCHMARKS:
         return metric in DEFAULT_REPRO_LONGCAPARENA_METRICS
     return True
-
-
-@dataclass(frozen=True)
-class ReproduceTask:
-    metric: str
-    benchmark: str
-    expected: Path
-    output: Path
-
-
-@dataclass
-class ReproduceResult:
-    metric: str
-    benchmark: str
-    status: str
-    output: str
-    expected: str
-    message: str = ""
-
-
-@dataclass(frozen=True)
-class ReproduceJob:
-    tasks: tuple[ReproduceTask, ...]
-    runner_metric: str
-    benchmark: str
-    metric_args: tuple[str, ...] = ()
-    use_references: bool = True
-    resource: str = "cpu"
 
 
 @dataclass(frozen=True)
@@ -377,17 +311,7 @@ def run_all_reproduce(
 
 
 def build_reproduce_jobs(tasks: list[ReproduceTask]) -> list[ReproduceJob]:
-    task_by_pair = {(task.metric, task.benchmark): task for task in tasks}
-    assigned: set[tuple[str, str]] = set()
-    jobs: list[ReproduceJob] = []
-    for task in tasks:
-        key = (task.metric, task.benchmark)
-        if key in assigned:
-            continue
-        job = grouped_job_for_task(task, task_by_pair, assigned)
-        jobs.append(job)
-        assigned.update((job_task.metric, job_task.benchmark) for job_task in job.tasks)
-    return jobs
+    return JobGroupingPolicy().build_jobs(tasks)
 
 
 def grouped_job_for_task(
@@ -395,53 +319,11 @@ def grouped_job_for_task(
     task_by_pair: dict[tuple[str, str], ReproduceTask],
     assigned: set[tuple[str, str]],
 ) -> ReproduceJob:
-    benchmark = task.benchmark
-    metric = task.metric
-    if metric in PYCOCO_METRICS:
-        group = _available_group(PYCOCO_METRICS, benchmark, task_by_pair, assigned)
-        metrics = ",".join(task.metric for task in group)
-        return ReproduceJob(
-            tasks=tuple(group),
-            runner_metric=group[0].metric,
-            benchmark=benchmark,
-            metric_args=("--metrics", metrics),
-            use_references=True,
-            resource="cpu",
-        )
-
-    for no_ref, with_ref in (
-        ("clipscore", "refclipscore"),
-        ("clipscore-vitl", "refclipscore-vitl"),
-        ("pacscore", "refpacscore"),
-        ("pacscore-vitl", "refpacscore-vitl"),
-        ("pacscorepp", "refpacscorepp"),
-    ):
-        if metric in {no_ref, with_ref}:
-            group = _available_group((no_ref, with_ref), benchmark, task_by_pair, assigned)
-            has_ref = any(task.metric == with_ref for task in group)
-            return ReproduceJob(
-                tasks=tuple(group),
-                runner_metric=with_ref if has_ref else no_ref,
-                benchmark=benchmark,
-                use_references=has_ref,
-                resource=_resource_for_metric(with_ref if has_ref else no_ref),
-            )
-
-    return ReproduceJob(
-        tasks=(task,),
-        runner_metric=metric,
-        benchmark=benchmark,
-        use_references=metric not in NO_REFERENCE_METRICS,
-        resource=_resource_for_metric(metric),
-    )
+    return JobGroupingPolicy().grouped_job_for_task(task, task_by_pair, assigned)
 
 
 def _resource_for_metric(metric: str) -> str:
-    if metric in EXCLUSIVE_GPU_METRICS:
-        return "exclusive-gpu"
-    if metric in GPU_METRICS:
-        return "gpu"
-    return "cpu"
+    return ResourceRequirementPolicy().resource_for_metric(metric)
 
 
 def _available_group(
@@ -450,15 +332,7 @@ def _available_group(
     task_by_pair: dict[tuple[str, str], ReproduceTask],
     assigned: set[tuple[str, str]],
 ) -> list[ReproduceTask]:
-    group = []
-    for metric in metrics:
-        key = (metric, benchmark)
-        if key in assigned:
-            continue
-        task = task_by_pair.get(key)
-        if task:
-            group.append(task)
-    return group
+    return JobGroupingPolicy._available_group(metrics, benchmark, task_by_pair, assigned)
 
 
 def run_reproduce_job(
@@ -647,7 +521,7 @@ def sorted_results(results: list[ReproduceResult]) -> list[ReproduceResult]:
 
 
 def task_tolerance(metric: str, benchmark: str, default: float) -> float:
-    return max(default, TOLERANCE_OVERRIDES.get((metric, benchmark), default))
+    return TolerancePolicy().tolerance(metric, benchmark, default)
 
 
 def print_result(

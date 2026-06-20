@@ -7,12 +7,17 @@ import subprocess
 import sys
 import tempfile
 import time
+from typing import Callable
 
-from .manifests import MetricManifest, get_manifest
-from .context import default_context
-from .paths import cache_root, repo_root
-from .runtime import RuntimeManager
-from .runtime_env import apply_runtime_environment
+from capevalkit.application.ports import MetricRunRequest, MetricRunResult
+from capevalkit.domain.metrics import MetricManifest
+from capevalkit.infrastructure.runtime.context import ProjectContext, default_context
+from capevalkit.infrastructure.runtime.environment import apply_runtime_environment
+from capevalkit.infrastructure.runtime.manager import RuntimeManager
+from capevalkit.infrastructure.runtime.paths import repo_root
+
+
+ManifestProvider = Callable[[str], MetricManifest]
 
 
 def metric_repo(manifest: MetricManifest) -> Path:
@@ -31,40 +36,43 @@ def uv_project(manifest: MetricManifest) -> Path:
     return path
 
 
-def build_uv_command(metric_name: str, args: list[str]) -> list[str]:
-    manifest = get_manifest(metric_name)
+def build_uv_command(metric_name: str, args: list[str], *, manifest_provider: ManifestProvider) -> list[str]:
+    manifest = manifest_provider(metric_name)
     return ["uv", "run", "--project", str(uv_project(manifest)), *args]
 
 
-def dispatch(
-    metric_name: str,
-    args: list[str],
-    *,
-    quiet: bool = False,
-    progress_total: int | None = None,
-    progress_desc: str | None = None,
-) -> int:
-    manifest = get_manifest(metric_name)
-    command = build_uv_command(metric_name, args)
-    env = os.environ.copy()
-    env.pop("VIRTUAL_ENV", None)
-    context = default_context()
-    apply_runtime_environment(env, repo_root(), cache_root=context.cache_root)
-    env["PYTHONPATH"] = _pythonpath(_package_import_root(context), repo_root(), env.get("PYTHONPATH"))
-    cwd = metric_repo(manifest)
-    if quiet and progress_total and progress_total > 0:
-        return _call_with_progress(
-            command,
-            cwd=cwd,
-            env=env,
-            total=progress_total,
-            desc=progress_desc or metric_name,
+class UvSubprocessMetricRunner:
+    def __init__(self, manifest_provider: ManifestProvider) -> None:
+        self.manifest_provider = manifest_provider
+
+    def run(self, request: MetricRunRequest) -> MetricRunResult:
+        manifest = self.manifest_provider(request.metric_name)
+        command = build_uv_command(
+            request.metric_name,
+            request.args,
+            manifest_provider=self.manifest_provider,
         )
-    stream = subprocess.DEVNULL if quiet else None
-    return subprocess.call(command, cwd=cwd, env=env, stdout=stream, stderr=stream)
+        env = os.environ.copy()
+        env.pop("VIRTUAL_ENV", None)
+        context = default_context()
+        apply_runtime_environment(env, repo_root(), cache_root=context.cache_root)
+        env["PYTHONPATH"] = pythonpath(package_import_root(context), repo_root(), env.get("PYTHONPATH"))
+        cwd = metric_repo(manifest)
+        if request.quiet and request.progress_total and request.progress_total > 0:
+            return MetricRunResult(
+                call_with_progress(
+                    command,
+                    cwd=cwd,
+                    env=env,
+                    total=request.progress_total,
+                    desc=request.progress_desc or request.metric_name,
+                )
+            )
+        stream = subprocess.DEVNULL if request.quiet else None
+        return MetricRunResult(subprocess.call(command, cwd=cwd, env=env, stdout=stream, stderr=stream))
 
 
-def _call_with_progress(
+def call_with_progress(
     command: list[str],
     *,
     cwd: Path,
@@ -115,10 +123,10 @@ def _call_with_progress(
                 task_id = progress.add_task(desc, total=total)
                 completed = 0
                 while process.poll() is None:
-                    completed = _drain_progress(progress_file, progress, task_id, total, completed)
+                    completed = drain_progress(progress_file, progress, task_id, total, completed)
                     time.sleep(0.1)
                 return_code = process.wait()
-                completed = _drain_progress(progress_file, progress, task_id, total, completed)
+                completed = drain_progress(progress_file, progress, task_id, total, completed)
                 if return_code == 0 and completed < total:
                     progress.update(task_id, advance=total - completed)
         return return_code
@@ -129,7 +137,7 @@ def _call_with_progress(
             pass
 
 
-def _drain_progress(progress_file, progress, task_id, total: int, completed: int) -> int:
+def drain_progress(progress_file, progress, task_id, total: int, completed: int) -> int:
     for line in progress_file:
         try:
             count = int(line.strip())
@@ -144,29 +152,7 @@ def _drain_progress(progress_file, progress, task_id, total: int, completed: int
     return completed
 
 
-def print_command(metric_name: str, args: list[str]) -> None:
-    manifest = get_manifest(metric_name)
-    command = " ".join(_quote(part) for part in build_uv_command(metric_name, args))
-    root = repo_root()
-    cache_dir = cache_root() / "uv"
-    clip_cache_dir = cache_root() / "clip"
-    context = default_context()
-    pythonpath = _pythonpath(_package_import_root(context), root, None)
-    print(
-        f"cd {_quote(str(metric_repo(manifest)))} && "
-        f"UV_CACHE_DIR={_quote(str(cache_dir))} UV_LINK_MODE=hardlink "
-        f"CLIP_DOWNLOAD_ROOT={_quote(str(clip_cache_dir))} "
-        f"PYTHONPATH={_quote(pythonpath)} {command}"
-    )
-
-
-def _quote(value: str) -> str:
-    if not value or any(char.isspace() for char in value):
-        return repr(value)
-    return value
-
-
-def _pythonpath(*entries: Path | str | None) -> str:
+def pythonpath(*entries: Path | str | None) -> str:
     values: list[str] = []
     for entry in entries:
         if entry is None:
@@ -177,7 +163,7 @@ def _pythonpath(*entries: Path | str | None) -> str:
     return os.pathsep.join(values)
 
 
-def _package_import_root(context=None) -> Path:
+def package_import_root(context: ProjectContext | None = None) -> Path:
     context = context or default_context()
     if context.source_mode:
         return context.package_root.parent
@@ -198,7 +184,3 @@ def _package_import_root(context=None) -> Path:
     except OSError:
         shutil.copytree(package_root, target)
     return bridge
-
-
-def exit_with_dispatch(metric_name: str, args: list[str]) -> None:
-    raise SystemExit(dispatch(metric_name, args))

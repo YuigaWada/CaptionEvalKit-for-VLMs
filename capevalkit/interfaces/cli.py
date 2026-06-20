@@ -6,15 +6,21 @@ import os
 from pathlib import Path
 import shutil
 
-from .benchmarks import LONGCAPARENA_BENCHMARKS, benchmark_metric
-from .dispatcher import dispatch, print_command
-from .manifests import get_manifest, load_manifests
-from .paths import repo_root
-from .runtime import RuntimeManager
-from .reproduce import (
+from capevalkit.application.use_cases import cli_commands as use_cases
+from capevalkit.infrastructure.benchmarks.legacy import LONGCAPARENA_BENCHMARKS, benchmark_metric
+from capevalkit.domain.evaluation import ReferenceRequirementPolicy
+from capevalkit.application.verification_service import verify_results
+from capevalkit.infrastructure.execution.dispatcher import print_command
+from capevalkit.infrastructure.execution import UvSubprocessMetricRunner
+from capevalkit.infrastructure.manifests import TomlMetricManifestRepository
+from capevalkit.infrastructure.manifests.catalog import get_manifest
+from capevalkit.infrastructure.runtime import GitRuntimeGateway
+from capevalkit.infrastructure.runtime.manager import RuntimeManager
+from capevalkit.infrastructure.runtime.paths import metrics_root
+from capevalkit.infrastructure.runtime.paths import repo_root
+from capevalkit.interfaces.reproduction import (
     DEFAULT_REPRO_BENCHMARKS,
     DEFAULT_REPRO_METRICS,
-    NO_REFERENCE_METRICS,
     default_expected_root,
     default_reproduce_pair,
     print_result,
@@ -23,7 +29,6 @@ from .reproduce import (
     should_color,
     write_summary,
 )
-from .verify import verify_results
 
 
 def _split_remainder(values: list[str]) -> list[str]:
@@ -42,17 +47,38 @@ def _split_csv(value: str) -> list[str]:
     return items
 
 
+def _manifest_repository() -> TomlMetricManifestRepository:
+    manager = RuntimeManager()
+    return TomlMetricManifestRepository(
+        prepare_runtime=manager.prepare_base,
+        root_provider=metrics_root,
+    )
+
+
+def _metric_runner() -> UvSubprocessMetricRunner:
+    return UvSubprocessMetricRunner(get_manifest)
+
+
+def _runtime_gateway() -> GitRuntimeGateway:
+    return GitRuntimeGateway()
+
+
+def _generic_benchmarks() -> tuple[str, ...]:
+    return ("composite", "flickr8k-ex", "flickr8k-cf", "nebula", "polaris", *LONGCAPARENA_BENCHMARKS)
+
+
 def list_metrics(_: argparse.Namespace) -> int:
-    manifests = load_manifests()
-    for name in sorted(manifests):
-        manifest = manifests[name]
-        native = ",".join(sorted(manifest.benchmarks)) or "-"
+    result = use_cases.list_metrics(
+        _manifest_repository(),
+        generic_benchmarks=_generic_benchmarks(),
+    )
+    for metric in result.metrics:
+        native = ",".join(metric.native_benchmarks) or "-"
         print(
-            f"{name}\trepo={manifest.repo_dir}\tuv_project={manifest.uv_project}"
-            f"\tpython={manifest.python}\tnative={native}"
+            f"{metric.name}\trepo={metric.repo_dir}\tuv_project={metric.uv_project}"
+            f"\tpython={metric.python}\tnative={native}"
         )
-    longcaparena = ",".join(LONGCAPARENA_BENCHMARKS)
-    print(f"generic-benchmarks\tcomposite,flickr8k-ex,flickr8k-cf,nebula,polaris,{longcaparena}")
+    print(f"generic-benchmarks\t{','.join(result.generic_benchmarks)}")
     return 0
 
 
@@ -62,108 +88,103 @@ def env_command(args: argparse.Namespace) -> int:
 
 
 def run(args: argparse.Namespace) -> int:
-    return dispatch(args.metric, _split_remainder(args.command))
+    return use_cases.run_command(
+        use_cases.RunCommandRequest(args.metric, _split_remainder(args.command)),
+        runner=_metric_runner(),
+    )
 
 
 def doctor(_: argparse.Namespace) -> int:
-    manager = RuntimeManager()
-    context = manager.context
-    manager.prepare_base()
+    result = use_cases.doctor(_runtime_gateway(), tool_lookup=shutil.which)
+    context = result.runtime
     print(f"mode\t{'source' if context.source_mode else 'runtime-cache'}")
     print(f"project_root\t{context.project_root}")
     print(f"cache_root\t{context.cache_root}")
     print(f"lock\t{context.lock_path}")
     print(f"lock_digest\t{context.lock_digest[:12]}")
-    print(f"git\t{shutil.which('git') or 'missing'}")
-    print(f"uv\t{shutil.which('uv') or 'missing'}")
+    print(f"git\t{result.git}")
+    print(f"uv\t{result.uv}")
     return 0
 
 
 def sync(args: argparse.Namespace) -> int:
-    manager = RuntimeManager()
-    manager.prepare_base()
-    if args.all:
-        upstreams = manager.upstream_names()
-    elif args.metrics:
-        manifests = load_manifests()
-        upstreams = []
-        for metric in _split_csv(args.metrics):
-            try:
-                manifest = manifests[metric]
-            except KeyError as exc:
-                known = ", ".join(sorted(manifests))
-                raise SystemExit(f"unknown metric: {metric}; known metrics: {known}") from exc
-            upstream = manager.upstream_for_path(manifest.repo_dir)
-            if upstream:
-                upstreams.append(upstream.name)
-    else:
-        print(f"OK\tbase\t{manager.context.project_root}")
+    try:
+        result = use_cases.sync_runtime(
+            use_cases.SyncRuntimeRequest(
+                all_metrics=args.all,
+                metrics=tuple(_split_csv(args.metrics)) if args.metrics else (),
+            ),
+            runtime=_runtime_gateway(),
+            repository=_manifest_repository(),
+        )
+    except KeyError as exc:
+        raise SystemExit(str(exc)) from exc
+
+    if result.base_path is not None:
+        print(f"OK\tbase\t{result.base_path}")
         return 0
 
-    for path in manager.ensure_upstreams(upstreams):
+    for path in result.upstream_paths:
         print(f"OK\tupstream\t{path}")
     return 0
 
 
 def score(args: argparse.Namespace) -> int:
-    manifest = get_manifest(args.metric)
-    command = [
-        *manifest.runner,
-        "--predictions",
-        str(Path(args.predictions).resolve()),
-        "--output",
-        str(Path(args.output).resolve()),
-    ]
-    if args.references:
-        command.extend(["--references", str(Path(args.references).resolve())])
-    if args.image_dir:
-        command.extend(["--image-dir", str(Path(args.image_dir).resolve())])
-    command.extend(_split_remainder(args.args))
-    return dispatch(args.metric, command)
+    return use_cases.score_captions(
+        use_cases.ScoreCaptionsRequest(
+            metric=args.metric,
+            predictions=Path(args.predictions),
+            output=Path(args.output),
+            references=Path(args.references) if args.references else None,
+            image_dir=Path(args.image_dir) if args.image_dir else None,
+            extra_args=_split_remainder(args.args),
+        ),
+        repository=_manifest_repository(),
+        runner=_metric_runner(),
+    )
 
 
 def benchmark(args: argparse.Namespace) -> int:
-    manifest = get_manifest(args.metric)
-    extra_args = _split_remainder(args.args)
-    if args.benchmark and not args.native:
-        output_root = Path(os.environ.get("IC_EVAL_OUTPUT_DIR", repo_root() / "outputs"))
-        output = args.output or str(output_root / args.metric / f"{args.benchmark}.json")
-        return benchmark_metric(
-            args.metric,
-            args.benchmark,
-            output,
-            data_root=args.data_root,
-            metric_args=extra_args,
-            use_references=_use_references(args.metric, no_references=args.no_references),
-            score_key=args.score_key,
-            limit=args.limit,
+    output_root = Path(os.environ.get("IC_EVAL_OUTPUT_DIR", repo_root() / "outputs"))
+    try:
+        return use_cases.benchmark(
+            use_cases.BenchmarkRequest(
+                metric=args.metric,
+                benchmark=args.benchmark,
+                output=Path(args.output) if args.output else None,
+                output_root=output_root,
+                data_root=args.data_root,
+                native=args.native,
+                no_references=args.no_references,
+                score_key=args.score_key,
+                limit=args.limit,
+                extra_args=_split_remainder(args.args),
+            ),
+            repository=_manifest_repository(),
+            runner=_metric_runner(),
+            benchmark_runner=benchmark_metric,
+            import_module=importlib.import_module,
         )
-
-    if args.benchmark:
-        try:
-            spec = manifest.benchmarks[args.benchmark]
-        except KeyError as exc:
-            known = ", ".join(sorted(manifest.benchmarks)) or "(none)"
-            raise SystemExit(f"{args.metric} has no benchmark {args.benchmark}; known: {known}") from exc
-        output_root = Path(os.environ.get("IC_EVAL_OUTPUT_DIR", repo_root() / "outputs"))
-        output = args.output or str(output_root / args.metric / f"{args.benchmark}.json")
-        command = [*manifest.runner, *spec.args, "--output", output, *extra_args]
-        return dispatch(args.metric, command)
-
-    if manifest.benchmark_module:
-        module = importlib.import_module(manifest.benchmark_module)
-        return int(module.main(extra_args) or 0)
-    raise SystemExit(f"{args.metric} does not declare a benchmark_module or benchmark specs")
+    except (KeyError, ValueError) as exc:
+        raise SystemExit(str(exc)) from exc
 
 
 def verify(args: argparse.Namespace) -> int:
-    verify_results(args.results, args.expected, tolerance=args.tolerance, round_decimals=args.round_decimals)
+    use_cases.verify_results_use_case(
+        use_cases.VerifyResultsRequest(
+            results=args.results,
+            expected=args.expected,
+            tolerance=args.tolerance,
+            round_decimals=args.round_decimals,
+        ),
+        verifier=verify_results,
+    )
     print("ok")
     return 0
 
 
 def download_assets_command(args: argparse.Namespace) -> int:
-    from .downloads import (
+    from capevalkit.infrastructure.assets.downloads import (
         DOWNLOADABLE_ASSETS,
         download_assets,
         format_asset_rows,
@@ -171,17 +192,33 @@ def download_assets_command(args: argparse.Namespace) -> int:
     )
 
     if args.list:
-        print(format_asset_rows(DOWNLOADABLE_ASSETS))
+        result = use_cases.download_assets(
+            use_cases.DownloadAssetsRequest(
+                assets=tuple(args.assets),
+                all_assets=args.all,
+                list_only=True,
+                force=args.force,
+                dry_run=args.dry_run,
+            ),
+            catalog=DOWNLOADABLE_ASSETS,
+            formatter=format_asset_rows,
+            selector=select_assets,
+            downloader=download_assets,
+        )
+        print(result.rows or "")
         return 0
     try:
-        selected = select_assets(
-            args.assets,
-            all_assets=args.all,
-        )
-        download_assets(
-            selected,
-            force=args.force,
-            dry_run=args.dry_run,
+        use_cases.download_assets(
+            use_cases.DownloadAssetsRequest(
+                assets=tuple(args.assets),
+                all_assets=args.all,
+                force=args.force,
+                dry_run=args.dry_run,
+            ),
+            catalog=DOWNLOADABLE_ASSETS,
+            formatter=format_asset_rows,
+            selector=select_assets,
+            downloader=download_assets,
         )
     except (KeyError, PermissionError, RuntimeError, ValueError) as exc:
         raise SystemExit(str(exc)) from exc
@@ -189,32 +226,22 @@ def download_assets_command(args: argparse.Namespace) -> int:
 
 
 def suite(args: argparse.Namespace) -> int:
-    metrics = _split_csv(args.metrics)
-    benchmarks = _split_csv(args.benchmarks)
-    output_dir = Path(args.output_dir)
-    for metric in metrics:
-        for benchmark_name in benchmarks:
-            output = output_dir / metric / f"{benchmark_name}.json"
-            code = benchmark_metric(
-                metric,
-            benchmark_name,
-            str(output),
+    return use_cases.suite(
+        use_cases.SuiteRequest(
+            metrics=tuple(_split_csv(args.metrics)),
+            benchmarks=tuple(_split_csv(args.benchmarks)),
+            output_dir=Path(args.output_dir),
+            expected_root=Path(args.expected_root),
             data_root=args.data_root,
-            use_references=_use_references(metric, no_references=args.no_references),
+            verify=args.verify,
+            tolerance=args.tolerance,
+            round_decimals=args.round_decimals,
+            no_references=args.no_references,
             limit=args.limit,
-        )
-            if code != 0:
-                return code
-            if args.verify:
-                expected = Path(args.expected_root) / metric / f"{benchmark_name}.json"
-                verify_results(
-                    str(output),
-                    str(expected),
-                    tolerance=args.tolerance,
-                    round_decimals=args.round_decimals,
-                )
-            print(f"ok\t{metric}\t{benchmark_name}\t{output}")
-    return 0
+        ),
+        benchmark_runner=benchmark_metric,
+        verifier=verify_results,
+    )
 
 
 def all_reproduce(args: argparse.Namespace) -> int:
@@ -225,33 +252,36 @@ def all_reproduce(args: argparse.Namespace) -> int:
     expected_root = Path(args.expected_root)
     report_missing = args.show_missing or (args.metrics is not None and args.benchmarks is not None)
     limit = 1 if args.smoke and args.limit is None else args.limit
-    code, results = run_all_reproduce(
-        metrics=metrics,
-        benchmarks=benchmarks,
-        data_root=args.data_root,
-        output_dir=output_dir,
-        expected_root=expected_root,
-        tolerance=args.tolerance,
-        round_decimals=args.round_decimals,
-        limit=limit,
-        fail_fast=args.fail_fast,
-        dry_run=args.dry_run,
-        verbose=args.verbose,
-        color=args.color,
-        report_missing=report_missing,
-        jobs=args.jobs,
-        gpu_jobs=args.gpu_jobs,
-        pair_filter=pair_filter,
-        allow_mismatch=args.smoke,
+    result = use_cases.all_reproduce(
+        use_cases.AllReproduceRequest(
+            metrics=tuple(metrics),
+            benchmarks=tuple(benchmarks),
+            data_root=args.data_root,
+            output_dir=output_dir,
+            expected_root=expected_root,
+            tolerance=args.tolerance,
+            round_decimals=args.round_decimals,
+            limit=limit,
+            fail_fast=args.fail_fast,
+            dry_run=args.dry_run,
+            verbose=args.verbose,
+            color=args.color,
+            report_missing=report_missing,
+            jobs=args.jobs,
+            gpu_jobs=args.gpu_jobs,
+            pair_filter=pair_filter,
+            allow_mismatch=args.smoke,
+        ),
+        reproduce_runner=run_all_reproduce,
     )
     summary = Path(args.summary) if args.summary else output_dir / "summary.json"
-    write_summary(summary, results)
-    print_summary(summary, results, use_color=should_color(args.color))
-    return code
+    write_summary(summary, result.results)
+    print_summary(summary, result.results, use_color=should_color(args.color))
+    return result.exit_code
 
 
 def _use_references(metric: str, *, no_references: bool) -> bool:
-    return not no_references and metric not in NO_REFERENCE_METRICS
+    return ReferenceRequirementPolicy().use_references(metric, no_references=no_references)
 
 
 def build_parser() -> argparse.ArgumentParser:

@@ -1,36 +1,14 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from collections.abc import Callable, Mapping
 from pathlib import Path
+
 try:
     import tomllib
 except ModuleNotFoundError:  # pragma: no cover - exercised on Python 3.10
     import tomli as tomllib
 
-from .paths import metrics_root
-
-
-@dataclass(frozen=True)
-class BenchmarkSpec:
-    name: str
-    args: tuple[str, ...]
-    expected: str | None
-
-
-@dataclass(frozen=True)
-class MetricManifest:
-    name: str
-    python: str
-    module: str
-    benchmark_module: str | None
-    repo_dir: str
-    repo_url: str | None
-    uv_project: str
-    runner: tuple[str, ...]
-    benchmarks: dict[str, BenchmarkSpec]
-    smoke_command: tuple[str, ...]
-    merge_policy: str
-    path: Path
+from capevalkit.domain.metrics import BenchmarkSpec, MetricManifest
 
 
 def _as_tuple(value: object, key: str, path: Path) -> tuple[str, ...]:
@@ -101,27 +79,41 @@ def load_manifest(path: Path) -> MetricManifest | None:
     )
 
 
-def load_manifests(root: Path | None = None) -> dict[str, MetricManifest]:
-    if root is None:
-        from .runtime import RuntimeManager
+class TomlMetricManifestRepository:
+    def __init__(
+        self,
+        root: Path | None = None,
+        *,
+        prepare_runtime: Callable[[], None] | None = None,
+        root_provider: Callable[[], Path] | None = None,
+    ) -> None:
+        self.root = root
+        self.prepare_runtime = prepare_runtime
+        self.root_provider = root_provider
 
-        RuntimeManager().prepare_base()
-        root = metrics_root()
-    manifests: dict[str, MetricManifest] = {}
-    for path in sorted(root.glob("*/metric.toml")):
-        manifest = load_manifest(path)
-        if manifest is None:
-            continue
-        if manifest.name in manifests:
-            raise ValueError(f"duplicate metric manifest: {manifest.name}")
-        manifests[manifest.name] = manifest
-    return manifests
+    def list(self) -> Mapping[str, MetricManifest]:
+        root = self.root
+        if root is None:
+            if self.prepare_runtime is not None:
+                self.prepare_runtime()
+            if self.root_provider is None:
+                raise ValueError("root_provider is required when root is omitted")
+            root = self.root_provider()
+        manifests: dict[str, MetricManifest] = {}
+        for path in sorted(root.glob("*/metric.toml")):
+            manifest = load_manifest(path)
+            if manifest is None:
+                continue
+            if manifest.name in manifests:
+                raise ValueError(f"duplicate metric manifest: {manifest.name}")
+            manifests[manifest.name] = manifest
+        return manifests
 
+    def get(self, metric_id: str) -> MetricManifest:
+        manifests = self.list()
+        try:
+            return manifests[metric_id]
+        except KeyError as exc:
+            known = ", ".join(sorted(manifests)) or "(none)"
+            raise KeyError(f"unknown metric: {metric_id}; known metrics: {known}") from exc
 
-def get_manifest(metric_name: str) -> MetricManifest:
-    manifests = load_manifests()
-    try:
-        return manifests[metric_name]
-    except KeyError as exc:
-        known = ", ".join(sorted(manifests)) or "(none)"
-        raise KeyError(f"unknown metric: {metric_name}; known metrics: {known}") from exc

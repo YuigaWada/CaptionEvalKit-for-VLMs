@@ -1,6 +1,6 @@
 [project]
 name = "capevalkit"
-version = "0.1.0"
+version = "0.1.1"
 description = "A reproducible caption-evaluation toolkit for VLMs with per-metric uv environments."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -42,7 +42,7 @@ Repository = "https://github.com/YuigaWada/CaptionEvalKit-for-VLMs"
 Issues = "https://github.com/YuigaWada/CaptionEvalKit-for-VLMs/issues"
 
 [project.scripts]
-capevalkit = "capevalkit.launcher:main"
+capevalkit = "capevalkit.interfaces.launcher:main"
 
 [build-system]
 requires = ["hatchling"]

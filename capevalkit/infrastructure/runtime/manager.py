@@ -8,9 +8,9 @@ import subprocess
 import threading
 from typing import Any
 
-from .context import ProjectContext, default_context
-from .manifests import MetricManifest
-from .overlays import ensure_overlays
+from capevalkit.domain.metrics import MetricManifest
+from capevalkit.infrastructure.runtime.context import ProjectContext, default_context
+from capevalkit.infrastructure.runtime.overlays import ensure_overlays
 
 _SOURCE_SUBMODULE_LOCK = threading.Lock()
 
