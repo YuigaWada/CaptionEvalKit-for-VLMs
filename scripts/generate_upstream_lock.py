@@ -15,7 +15,7 @@ def main() -> int:
         default="capevalkit/resources/upstreams.lock.json",
         help="lock file to write",
     )
-    parser.add_argument("--version", default="0.1.1", help="capevalkit version to record")
+    parser.add_argument("--version", default="0.1.2", help="capevalkit version to record")
     args = parser.parse_args()
 
     root = Path(args.root).resolve()
