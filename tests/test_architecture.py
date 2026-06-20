@@ -661,6 +661,29 @@ class ArchitectureTest(unittest.TestCase):
         self.assertEqual(seen_predictions, ["caption a", "caption b"])
         self.assertIn("cider", results)
 
+    def test_root_package_reexports_public_python_api_for_compatibility(self) -> None:
+        import capevalkit as capeval
+
+        public_names = [
+            "CaptionBatch",
+            "CaptionEvalRun",
+            "CaptionSample",
+            "MetricOutput",
+            "benchmark",
+            "evaluate_caption_model",
+            "evaluate_captions",
+            "evaluate_metric",
+            "get_manifest",
+            "load_manifests",
+            "load_samples",
+            "score",
+        ]
+
+        for name in public_names:
+            with self.subTest(name=name):
+                self.assertIs(getattr(capeval, name), getattr(api, name))
+                self.assertIn(name, capeval.__all__)
+
     def test_ensure_overlays_copies_changed_files(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
