@@ -9,7 +9,7 @@ from PIL import Image
 from torch.utils.data import DataLoader, Dataset
 
 from capevalkit.shared.compat import zip_strict
-from capevalkit.infrastructure.execution.progress import progress_update
+from capevalkit.infrastructure.execution.progress import progress_status, progress_update
 
 
 VALID_MODES = ("desc", "rel", "flu")
@@ -98,6 +98,7 @@ def compute(
 
     if device == "auto":
         device = "cuda" if torch.cuda.is_available() else "cpu"
+    progress_status(f"Loading VELA model from {cfg_path}: first use may download Hugging Face assets")
     model = load_pretrained_model(cfg_path=cfg_path, device=device)
     dataset = _VelaRows(item_ids=item_ids, predictions=predictions, references=references, mode=mode)
     collate_fn = VELACollateFn(model.cfg, device=device)

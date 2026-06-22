@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from capevalkit.shared.compat import zip_strict
-from capevalkit.infrastructure.execution.progress import progress_iter
+from capevalkit.infrastructure.execution.progress import progress_iter, progress_status
 
 
 def _read_jsonl(path: str) -> list[dict[str, Any]]:
@@ -102,6 +102,7 @@ def _build_scorer(metric: str):
         if metric == "spice":
             from pycocoevalcap.spice.spice import Spice
 
+            progress_status("Loading SPICE scorer: first use may download Stanford CoreNLP")
             return Spice(), ["SPICE"]
     except ModuleNotFoundError:
         if metric == "bleu":
@@ -123,6 +124,7 @@ def _build_scorer(metric: str):
         if metric == "spice":
             from spice.spice import Spice
 
+            progress_status("Loading SPICE scorer: first use may download Stanford CoreNLP")
             return Spice(), ["SPICE"]
     raise ValueError(f"unknown pycocoevalcap metric: {metric}")
 

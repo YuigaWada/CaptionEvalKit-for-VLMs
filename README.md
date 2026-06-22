@@ -31,7 +31,6 @@ CaptionEvalKit currently supports:
 * [Supported Metrics](#supported-metrics)
 * [Supported Benchmarks](#supported-benchmarks)
 * [Data and Assets](#data-and-assets)
-* [TODO](#todo)
 * [Development](#development)
 * [Citation](#citation)
 
@@ -400,6 +399,7 @@ Benchmark datasets are cached on first use under `<runtime-root>/.hf-cache/bench
 | LongCap-Arena | Hugging Face `Ka2ukiMatsuda/LongCap-Arena` |
 
 Model files and checkpoints are downloaded on first use by the corresponding metric runner or upstream library.
+First-use downloads and runtime setup print `Preparing...`, `Downloading...`, and cache-completion status lines. Direct HTTP assets and checkpoints also report byte progress.
 
 | Metric family | Model or checkpoint source |
 | --- | --- |
@@ -433,10 +433,6 @@ data/
 ```
 
 </details>
-
-## TODO
-
-- [ ] Improve the first-download UI/UX for `all_reproduce`.
 
 ## Development
 

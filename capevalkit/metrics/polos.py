@@ -8,16 +8,18 @@ from typing import Any
 
 from capevalkit.shared.compat import zip_strict
 from capevalkit.infrastructure.runtime.paths import repo_root
-from capevalkit.infrastructure.execution.progress import progress_update
+from capevalkit.infrastructure.execution.progress import progress_status, progress_update
 
 
 def load_model(model_path: str | None = None, model_name: str = "polos") -> Any:
     from polos.models import download_model, load_checkpoint
 
     if model_path:
+        progress_status(f"Loading Polos checkpoint: {model_path}")
         return load_checkpoint(model_path)
     cache_dir = repo_root() / ".model-cache" / "polos"
     cache_dir.mkdir(parents=True, exist_ok=True)
+    progress_status(f"Loading Polos model {model_name}: first use may download to {cache_dir}")
     return load_checkpoint(download_model(model_name, saving_directory=f"{cache_dir}/"))
 
 

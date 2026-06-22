@@ -11,6 +11,7 @@ from typing import Callable
 
 from capevalkit.application.ports import MetricRunRequest, MetricRunResult
 from capevalkit.domain.metrics import MetricManifest
+from capevalkit.infrastructure.execution.progress import progress_status
 from capevalkit.infrastructure.runtime.context import ProjectContext, default_context
 from capevalkit.infrastructure.runtime.environment import apply_runtime_environment
 from capevalkit.infrastructure.runtime.manager import RuntimeManager
@@ -47,6 +48,11 @@ class UvSubprocessMetricRunner:
 
     def run(self, request: MetricRunRequest) -> MetricRunResult:
         manifest = self.manifest_provider(request.metric_name)
+        if request.quiet:
+            progress_status(
+                f"Preparing metric runtime for {request.metric_name}: "
+                "uv may install dependencies and upstream models on first use"
+            )
         command = build_uv_command(
             request.metric_name,
             request.args,
@@ -58,13 +64,13 @@ class UvSubprocessMetricRunner:
         apply_runtime_environment(env, repo_root(), cache_root=context.cache_root)
         env["PYTHONPATH"] = pythonpath(package_import_root(context), repo_root(), env.get("PYTHONPATH"))
         cwd = metric_repo(manifest)
-        if request.quiet and request.progress_total and request.progress_total > 0:
+        if request.quiet:
             return MetricRunResult(
                 call_with_progress(
                     command,
                     cwd=cwd,
                     env=env,
-                    total=request.progress_total,
+                    total=request.progress_total or 0,
                     desc=request.progress_desc or request.metric_name,
                 )
             )
@@ -80,20 +86,6 @@ def call_with_progress(
     total: int,
     desc: str,
 ) -> int:
-    try:
-        from rich.console import Console
-        from rich.progress import (
-            BarColumn,
-            MofNCompleteColumn,
-            Progress,
-            TextColumn,
-            TimeElapsedColumn,
-            TimeRemainingColumn,
-        )
-    except ModuleNotFoundError:
-        stream = subprocess.DEVNULL
-        return subprocess.call(command, cwd=cwd, env=env, stdout=stream, stderr=stream)
-
     fd, progress_name = tempfile.mkstemp(prefix="capevalkit-progress-", text=True)
     os.close(fd)
     progress_path = Path(progress_name)
@@ -108,6 +100,60 @@ def call_with_progress(
             stderr=subprocess.DEVNULL,
         )
         with progress_path.open("r") as progress_file:
+            if total <= 0:
+                completed = 0
+                while process.poll() is None:
+                    completed = drain_progress(
+                        progress_file,
+                        None,
+                        None,
+                        total,
+                        completed,
+                        status_to_stderr=True,
+                    )
+                    time.sleep(0.1)
+                return_code = process.wait()
+                drain_progress(
+                    progress_file,
+                    None,
+                    None,
+                    total,
+                    completed,
+                    status_to_stderr=True,
+                )
+                return return_code
+            try:
+                from rich.console import Console
+                from rich.progress import (
+                    BarColumn,
+                    MofNCompleteColumn,
+                    Progress,
+                    TextColumn,
+                    TimeElapsedColumn,
+                    TimeRemainingColumn,
+                )
+            except ModuleNotFoundError:
+                completed = 0
+                while process.poll() is None:
+                    completed = drain_progress(
+                        progress_file,
+                        None,
+                        None,
+                        total,
+                        completed,
+                        status_to_stderr=True,
+                    )
+                    time.sleep(0.1)
+                return_code = process.wait()
+                drain_progress(
+                    progress_file,
+                    None,
+                    None,
+                    total,
+                    completed,
+                    status_to_stderr=True,
+                )
+                return return_code
             with Progress(
                 TextColumn("[progress.description]{task.description}"),
                 BarColumn(),
@@ -122,11 +168,26 @@ def call_with_progress(
             ) as progress:
                 task_id = progress.add_task(desc, total=total)
                 completed = 0
+                status_to_stderr = not sys.stderr.isatty()
                 while process.poll() is None:
-                    completed = drain_progress(progress_file, progress, task_id, total, completed)
+                    completed = drain_progress(
+                        progress_file,
+                        progress,
+                        task_id,
+                        total,
+                        completed,
+                        status_to_stderr=status_to_stderr,
+                    )
                     time.sleep(0.1)
                 return_code = process.wait()
-                completed = drain_progress(progress_file, progress, task_id, total, completed)
+                completed = drain_progress(
+                    progress_file,
+                    progress,
+                    task_id,
+                    total,
+                    completed,
+                    status_to_stderr=status_to_stderr,
+                )
                 if return_code == 0 and completed < total:
                     progress.update(task_id, advance=total - completed)
         return return_code
@@ -137,8 +198,24 @@ def call_with_progress(
             pass
 
 
-def drain_progress(progress_file, progress, task_id, total: int, completed: int) -> int:
+def drain_progress(
+    progress_file,
+    progress,
+    task_id,
+    total: int,
+    completed: int,
+    *,
+    status_to_stderr: bool = False,
+) -> int:
     for line in progress_file:
+        if line.startswith("STATUS\t"):
+            message = line.split("\t", 1)[1].strip()
+            if progress is not None and task_id is not None:
+                progress.update(task_id, description=message)
+                progress.refresh()
+            if status_to_stderr:
+                progress_status(message)
+            continue
         try:
             count = int(line.strip())
         except ValueError:

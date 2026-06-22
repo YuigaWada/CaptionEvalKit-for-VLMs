@@ -30,6 +30,7 @@ from capevalkit.domain.reproduction import (
     TolerancePolicy,
 )
 from capevalkit.application.verification_service import NumericComparison, compare_results
+from capevalkit.infrastructure.execution.progress import format_status_line, progress_status_reporter
 from capevalkit.infrastructure.runtime.paths import repo_root
 
 
@@ -207,7 +208,7 @@ def run_all_reproduce(
     print_results_header()
     print_lock = threading.Lock()
 
-    with ReproduceProgress(total=len(tasks)) as progress:
+    with ReproduceProgress(total=len(tasks), use_color=use_color) as progress:
         def emit_job_start(job: ReproduceJob) -> None:
             with print_lock:
                 progress.start(job)
@@ -568,10 +569,13 @@ def format_job_target(job: ReproduceJob) -> str:
 
 
 class ReproduceProgress:
-    def __init__(self, *, total: int) -> None:
+    def __init__(self, *, total: int, use_color: bool = False) -> None:
         self.total = total
+        self.use_color = use_color
         self.progress = None
         self.task_id = None
+        self._status_reporter = None
+        self._lock = threading.RLock()
 
     def __enter__(self) -> ReproduceProgress:
         try:
@@ -600,26 +604,50 @@ class ReproduceProgress:
         )
         self.progress.start()
         self.task_id = self.progress.add_task("all_reproduce", total=self.total)
+        self._status_reporter = progress_status_reporter(self.status)
+        self._status_reporter.__enter__()
         return self
 
     def __exit__(self, exc_type: object, exc: object, traceback: object) -> None:
+        if self._status_reporter is not None:
+            self._status_reporter.__exit__(exc_type, exc, traceback)
+            self._status_reporter = None
         if self.progress is not None:
             self.progress.stop()
 
     def start(self, job: ReproduceJob) -> None:
         if self.progress is None or self.task_id is None:
             return
-        self.progress.update(self.task_id, description=format_job_target(job))
-        self.progress.refresh()
+        with self._lock:
+            self.progress.update(self.task_id, description=format_job_target(job))
+            self.progress.refresh()
+
+    def status(self, message: str) -> None:
+        line = format_status_line(message)
+        if self.progress is not None:
+            with self._lock:
+                self.progress.console.print(
+                    line,
+                    style="yellow",
+                    highlight=False,
+                    markup=False,
+                    soft_wrap=True,
+                )
+                self.progress.refresh()
+            return
+        line = colorize(line, "33")
+        print(line, file=sys.stderr, flush=True)
 
     def update(self) -> None:
         if self.progress is not None and self.task_id is not None:
-            self.progress.update(self.task_id, advance=1)
-            self.progress.refresh()
+            with self._lock:
+                self.progress.update(self.task_id, advance=1)
+                self.progress.refresh()
 
     def print(self, line: str) -> None:
         if self.progress is not None:
-            self.progress.console.print(line, highlight=False, markup=False, soft_wrap=True)
+            with self._lock:
+                self.progress.console.print(line, highlight=False, markup=False, soft_wrap=True)
             return
         print(line, flush=True)
 

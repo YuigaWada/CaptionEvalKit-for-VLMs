@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import contextlib
+import io
 import tempfile
 import unittest
 import zipfile
@@ -38,10 +40,14 @@ class DownloadAssetsTest(unittest.TestCase):
                 ready_path="models/model.bin",
             )
 
-            result = download_asset(asset, root=root)
+            stderr = io.StringIO()
+            with contextlib.redirect_stderr(stderr):
+                result = download_asset(asset, root=root)
 
             self.assertEqual(result, root / "models" / "model.bin")
             self.assertEqual(result.read_bytes(), b"checkpoint")
+            self.assertIn("Downloading asset sample", stderr.getvalue())
+            self.assertIn("Downloaded asset sample", stderr.getvalue())
 
     def test_zip_asset_extracts_to_ready_path(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -59,7 +65,8 @@ class DownloadAssetsTest(unittest.TestCase):
                 extract_to=".model-cache/polos",
             )
 
-            result = download_asset(asset, root=root)
+            with contextlib.redirect_stderr(io.StringIO()):
+                result = download_asset(asset, root=root)
 
             self.assertEqual(result, root / ".model-cache" / "polos" / "reprod" / "reprod.ckpt")
             self.assertEqual(result.read_text(), "weights")
@@ -83,7 +90,8 @@ class DownloadAssetsTest(unittest.TestCase):
             def fake_hf_hub_download(**_: str) -> str:
                 return str(cached)
 
-            result = download_asset(asset, root=root, hf_hub_download=fake_hf_hub_download)
+            with contextlib.redirect_stderr(io.StringIO()):
+                result = download_asset(asset, root=root, hf_hub_download=fake_hf_hub_download)
 
             self.assertEqual(result, root / "runtime" / "model.safetensors")
             self.assertEqual(result.read_bytes(), b"hf")

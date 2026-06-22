@@ -25,6 +25,7 @@ from capevalkit.domain.evaluation import (
 )
 from capevalkit.domain.evaluation.correlations import kendall_correlations
 from capevalkit.infrastructure.execution.dispatcher import dispatch
+from capevalkit.infrastructure.execution.progress import copy_with_download_progress, progress_status
 from capevalkit.infrastructure.manifests.catalog import get_manifest
 from capevalkit.infrastructure.runtime.paths import repo_root
 
@@ -182,8 +183,9 @@ def _cached_hf_file(repo_id: str, filename: str, cache_name: str) -> Path:
                 url = f"https://huggingface.co/datasets/{repo_id}/resolve/main/{filename}"
                 cache_path.parent.mkdir(parents=True, exist_ok=True)
                 tmp_path = _cache_tmp_path(cache_path)
-                with urlopen(url, timeout=120) as response:
-                    tmp_path.write_bytes(response.read())
+                progress_status(f"Downloading benchmark file {repo_id}/{filename}")
+                with urlopen(url, timeout=120) as response, tmp_path.open("wb") as output:
+                    copy_with_download_progress(response, output, label=f"benchmark {repo_id}/{filename}")
                 tmp_path.replace(cache_path)
     return cache_path
 
@@ -208,6 +210,7 @@ def _hf_cache_write_lock():
 
 
 def _hf_parquet_paths(repo_id: str, splits: tuple[str, ...]) -> list[str]:
+    progress_status(f"Resolving Hugging Face benchmark index: {repo_id}")
     api = (
         "https://huggingface.co/api/datasets/"
         f"{quote(repo_id, safe='/')}/tree/refs%2Fconvert%2Fparquet/default?recursive=true"
@@ -256,6 +259,7 @@ def _write_hf_cache(
             split = Path(parquet_path).parent.name
             url = f"https://huggingface.co/datasets/{repo_id}/resolve/refs%2Fconvert%2Fparquet/{parquet_path}"
             def read_table():
+                progress_status(f"Downloading benchmark shard {repo_id}/{parquet_path}")
                 with fs.open(url, "rb") as parquet_file:
                     return pq.read_table(parquet_file, columns=columns)
 
@@ -269,6 +273,7 @@ def _write_hf_cache(
                 written += 1
             split_offsets[split] = offset + table.num_rows
     tmp_path.replace(cache_path)
+    progress_status(f"Cached benchmark data: {cache_path}")
 
 
 def _read_cached_items(path: Path) -> list[BenchmarkItem]:
@@ -311,6 +316,7 @@ def _write_hf_embedded_image_cache(
         raise ModuleNotFoundError("Hugging Face dataset loading requires datasets; run `uv sync`") from exc
 
     dataset_split = f"{split}[:{limit}]" if limit is not None else split
+    progress_status(f"Downloading benchmark dataset {repo_id}/{config_name}/{dataset_split}")
     dataset = load_dataset(repo_id, config_name, split=dataset_split)
     dataset = dataset.cast_column("img", Image(decode=False))
     image_dir.mkdir(parents=True, exist_ok=True)
@@ -323,6 +329,7 @@ def _write_hf_embedded_image_cache(
             item = _hf_embedded_row_to_item(row, image_dir=image_dir, row_index=row_index)
             file.write(json.dumps(item.__dict__, ensure_ascii=False) + "\n")
     tmp_path.replace(cache_path)
+    progress_status(f"Cached benchmark data: {cache_path}")
 
 
 def _write_hf_image_column_cache(
@@ -361,6 +368,7 @@ def _write_hf_image_column_cache(
                 rows = []
                 row_offset = offset
                 remaining = None if limit is None else max(0, limit - written)
+                progress_status(f"Downloading benchmark shard {repo_id}/{parquet_path}")
                 with fs.open(url, "rb") as parquet_file:
                     reader = pq.ParquetFile(parquet_file)
                     for batch in reader.iter_batches(columns=columns, batch_size=256):
@@ -379,6 +387,7 @@ def _write_hf_image_column_cache(
             written += len(rows)
             split_offsets[split] = offset
     tmp_path.replace(cache_path)
+    progress_status(f"Cached benchmark data: {cache_path}")
 
 
 def _hf_embedded_row_to_item(row: dict[str, Any], *, image_dir: Path, row_index: int) -> BenchmarkItem:
@@ -634,6 +643,7 @@ def _write_hf_longcaparena_cache(cache_path: Path, split: str, limit: int | None
                 "https://huggingface.co/datasets/"
                 f"{HF_LONGCAP_ARENA_REPO}/resolve/refs%2Fconvert%2Fparquet/{parquet_path}"
             )
+            progress_status(f"Downloading benchmark shard {HF_LONGCAP_ARENA_REPO}/{parquet_path}")
             with fs.open(url, "rb") as parquet_file:
                 reader = pq.ParquetFile(parquet_file)
                 for batch in reader.iter_batches(
@@ -662,6 +672,7 @@ def _write_hf_longcaparena_cache(cache_path: Path, split: str, limit: int | None
                     if limit is not None and written >= limit:
                         break
     tmp_path.replace(cache_path)
+    progress_status(f"Cached benchmark data: {cache_path}")
 
 
 def _load_hf_longcaparena(benchmark_name: str, limit: int | None = None) -> list[BenchmarkItem]:

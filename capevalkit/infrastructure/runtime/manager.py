@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import json
+import os
 from pathlib import Path
 import shutil
 import subprocess
@@ -9,6 +10,7 @@ import threading
 from typing import Any
 
 from capevalkit.domain.metrics import MetricManifest
+from capevalkit.infrastructure.execution.progress import progress_status
 from capevalkit.infrastructure.runtime.context import ProjectContext, default_context
 from capevalkit.infrastructure.runtime.overlays import ensure_overlays
 
@@ -71,10 +73,10 @@ class RuntimeManager:
                     ensure_overlays(root=root, overlays=spec.overlays)
                     return path
                 self._remove_overlay_only_stub(root, path, spec)
-                subprocess.run(
+                progress_status(f"Syncing upstream {name}: git submodule update {spec.path}")
+                self._run_git(
                     ["git", "submodule", "update", "--init", "--recursive", spec.path],
                     cwd=root,
-                    check=True,
                 )
                 if self._source_checkout_is_ready(root, path):
                     ensure_overlays(root=root, overlays=spec.overlays)
@@ -95,10 +97,14 @@ class RuntimeManager:
 
         path.parent.mkdir(parents=True, exist_ok=True)
         if not path.exists() or path_is_empty:
-            subprocess.run(["git", "clone", spec.url, str(path)], check=True)
-        subprocess.run(["git", "fetch", "--tags", "origin"], cwd=path, check=True)
-        subprocess.run(["git", "checkout", spec.rev], cwd=path, check=True)
-        subprocess.run(["git", "submodule", "update", "--init", "--recursive"], cwd=path, check=True)
+            progress_status(f"Downloading upstream {name}: cloning {spec.url}")
+            self._run_git(["git", "clone", spec.url, str(path)])
+        progress_status(f"Syncing upstream {name}: fetching locked revision")
+        self._run_git(["git", "fetch", "--tags", "origin"], cwd=path)
+        progress_status(f"Syncing upstream {name}: checkout {spec.rev}")
+        self._run_git(["git", "checkout", spec.rev], cwd=path)
+        progress_status(f"Syncing upstream {name}: updating submodules")
+        self._run_git(["git", "submodule", "update", "--init", "--recursive"], cwd=path)
         ensure_overlays(root=root, overlays=spec.overlays)
         return path
 
@@ -134,6 +140,28 @@ class RuntimeManager:
         if not self.context.lock_path.exists():
             return {"schema_version": 1, "upstreams": {}}
         return json.loads(self.context.lock_path.read_text())
+
+    def _run_git(self, command: list[str], *, cwd: Path | None = None) -> None:
+        if os.environ.get("CAPEVALKIT_GIT_VERBOSE"):
+            subprocess.run(command, cwd=cwd, check=True)
+            return
+        result = subprocess.run(
+            command,
+            cwd=cwd,
+            check=False,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        if result.returncode == 0:
+            return
+        detail = " ".join((result.stderr or result.stdout or "").split())
+        if len(detail) > 400:
+            detail = f"{detail[:397]}..."
+        message = f"{' '.join(command)} failed with code {result.returncode}"
+        if detail:
+            message = f"{message}: {detail}"
+        raise RuntimeError(message)
 
     def _copy_metric_manifests(self) -> None:
         source = self.context.resource_root / "metrics"

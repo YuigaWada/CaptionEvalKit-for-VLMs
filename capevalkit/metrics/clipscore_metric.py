@@ -11,7 +11,7 @@ from typing import Any
 
 from capevalkit.shared.compat import zip_strict
 from capevalkit.infrastructure.runtime.paths import repo_root
-from capevalkit.infrastructure.execution.progress import progress_update
+from capevalkit.infrastructure.execution.progress import progress_status, progress_update
 
 
 def _load_rows(path: str) -> dict[str, dict[str, Any]]:
@@ -161,6 +161,7 @@ def compute(
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     download_root = os.environ.get("CLIP_DOWNLOAD_ROOT", str(Path.cwd() / ".cache" / "clip"))
+    progress_status(f"Loading CLIP model {clip_model}: first use may download weights to {download_root}")
     model, _ = official.clip.load(clip_model, device=device, jit=False, download_root=download_root)
     model.eval()
 

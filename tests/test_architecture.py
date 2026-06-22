@@ -39,6 +39,7 @@ from capevalkit.interfaces.reproduction import (
     DEFAULT_REPRO_BENCHMARKS,
     DEFAULT_REPRO_METRICS,
     ReproduceJob,
+    ReproduceProgress,
     ReproduceResult,
     ReproduceTask,
     build_reproduce_jobs,
@@ -124,6 +125,26 @@ class ArchitectureTest(unittest.TestCase):
                 )
 
         self.assertEqual(code, 0)
+
+    def test_dispatcher_call_with_progress_forwards_child_status(self) -> None:
+        script = (
+            "from capevalkit.infrastructure.execution.progress import progress_status\n"
+            "progress_status('Downloading model weights')\n"
+        )
+        env = os.environ.copy()
+        with tempfile.TemporaryDirectory() as tmp:
+            stderr = io.StringIO()
+            with contextlib.redirect_stderr(stderr):
+                code = _call_with_progress(
+                    [sys.executable, "-c", script],
+                    cwd=Path(tmp),
+                    env=env,
+                    total=0,
+                    desc="metric/bench",
+                )
+
+        self.assertEqual(code, 0)
+        self.assertIn("Downloading model weights", stderr.getvalue())
 
     def test_runtime_environment_points_model_caches_at_cache_root(self) -> None:
         env: dict[str, str] = {}
@@ -227,7 +248,8 @@ class ArchitectureTest(unittest.TestCase):
                 return subprocess.CompletedProcess(command, 0, stdout="")
 
             with patch("capevalkit.infrastructure.runtime.manager.subprocess.run", side_effect=fake_run):
-                RuntimeManager(context).ensure_upstream("demo")
+                with contextlib.redirect_stderr(io.StringIO()):
+                    RuntimeManager(context).ensure_upstream("demo")
 
             self.assertEqual(commands[0], ["git", "clone", "https://example.test/demo.git", str(runtime / "metrics" / "upstreams" / "demo")])
             self.assertIn(["git", "checkout", "abc123"], commands)
@@ -277,7 +299,8 @@ class ArchitectureTest(unittest.TestCase):
                 return subprocess.CompletedProcess(command, 0, stdout="")
 
             with patch("capevalkit.infrastructure.runtime.manager.subprocess.run", side_effect=fake_run):
-                result = RuntimeManager(context).ensure_upstream("demo")
+                with contextlib.redirect_stderr(io.StringIO()):
+                    result = RuntimeManager(context).ensure_upstream("demo")
 
             self.assertEqual(result, upstream)
             self.assertIn(
@@ -345,7 +368,8 @@ class ArchitectureTest(unittest.TestCase):
                 return subprocess.CompletedProcess(command, 0, stdout="")
 
             with patch("capevalkit.infrastructure.runtime.manager.subprocess.run", side_effect=fake_run):
-                RuntimeManager(context).ensure_upstream("demo")
+                with contextlib.redirect_stderr(io.StringIO()):
+                    RuntimeManager(context).ensure_upstream("demo")
 
             self.assertIn(
                 ["git", "submodule", "update", "--init", "--recursive", "metrics/upstreams/demo"],
@@ -424,7 +448,8 @@ class ArchitectureTest(unittest.TestCase):
                 return subprocess.CompletedProcess(command, 0, stdout="")
 
             with patch("capevalkit.infrastructure.runtime.manager.subprocess.run", side_effect=fake_run):
-                result = RuntimeManager(context).ensure_upstream("demo")
+                with contextlib.redirect_stderr(io.StringIO()):
+                    result = RuntimeManager(context).ensure_upstream("demo")
 
             self.assertEqual(result, upstream)
             self.assertTrue((upstream / ".git").exists())
@@ -1027,15 +1052,16 @@ class ArchitectureTest(unittest.TestCase):
             image_dir = root / "nebula-images"
             with patch("capevalkit.infrastructure.benchmarks.legacy._hf_parquet_paths", return_value=["default/test/0000.parquet"]):
                 with patch("fsspec.filesystem", return_value=FakeFs()):
-                    benchmarks._write_hf_image_column_cache(
-                        repo_id="org/nebula",
-                        splits=("test",),
-                        cache_path=cache_path,
-                        image_dir=image_dir,
-                        columns=["file_name", "image", "refs", "mt", "human_score"],
-                        image_column="image",
-                        row_to_item=benchmarks._hf_nebula_row_to_item,
-                    )
+                    with contextlib.redirect_stderr(io.StringIO()):
+                        benchmarks._write_hf_image_column_cache(
+                            repo_id="org/nebula",
+                            splits=("test",),
+                            cache_path=cache_path,
+                            image_dir=image_dir,
+                            columns=["file_name", "image", "refs", "mt", "human_score"],
+                            image_column="image",
+                            row_to_item=benchmarks._hf_nebula_row_to_item,
+                        )
 
             items = benchmarks._read_cached_items(cache_path)
             self.assertEqual(len(items), 1)
@@ -1074,16 +1100,17 @@ class ArchitectureTest(unittest.TestCase):
             image_dir = root / "nebula-images-limit1"
             with patch("capevalkit.infrastructure.benchmarks.legacy._hf_parquet_paths", return_value=["default/test/0000.parquet"]):
                 with patch("fsspec.filesystem", return_value=FakeFs()):
-                    benchmarks._write_hf_image_column_cache(
-                        repo_id="org/nebula",
-                        splits=("test",),
-                        cache_path=cache_path,
-                        image_dir=image_dir,
-                        columns=["file_name", "image", "refs", "mt", "human_score"],
-                        image_column="image",
-                        row_to_item=benchmarks._hf_nebula_row_to_item,
-                        limit=1,
-                    )
+                    with contextlib.redirect_stderr(io.StringIO()):
+                        benchmarks._write_hf_image_column_cache(
+                            repo_id="org/nebula",
+                            splits=("test",),
+                            cache_path=cache_path,
+                            image_dir=image_dir,
+                            columns=["file_name", "image", "refs", "mt", "human_score"],
+                            image_column="image",
+                            row_to_item=benchmarks._hf_nebula_row_to_item,
+                            limit=1,
+                        )
 
             items = benchmarks._read_cached_items(cache_path)
             self.assertEqual(len(items), 1)
@@ -1128,15 +1155,16 @@ class ArchitectureTest(unittest.TestCase):
                 with patch("fsspec.filesystem", return_value=fake_fs):
                     with patch("capevalkit.infrastructure.benchmarks.legacy._hf_read_retries", return_value=2):
                         with patch("capevalkit.infrastructure.benchmarks.legacy._hf_retry_delay_seconds", return_value=0.0):
-                            benchmarks._write_hf_image_column_cache(
-                                repo_id="org/nebula",
-                                splits=("test",),
-                                cache_path=cache_path,
-                                image_dir=image_dir,
-                                columns=["file_name", "image", "refs", "mt", "human_score"],
-                                image_column="image",
-                                row_to_item=benchmarks._hf_nebula_row_to_item,
-                            )
+                            with contextlib.redirect_stderr(io.StringIO()):
+                                benchmarks._write_hf_image_column_cache(
+                                    repo_id="org/nebula",
+                                    splits=("test",),
+                                    cache_path=cache_path,
+                                    image_dir=image_dir,
+                                    columns=["file_name", "image", "refs", "mt", "human_score"],
+                                    image_column="image",
+                                    row_to_item=benchmarks._hf_nebula_row_to_item,
+                                )
 
             items = benchmarks._read_cached_items(cache_path)
             self.assertEqual(fake_fs.attempts, 2)
@@ -1612,8 +1640,9 @@ class ArchitectureTest(unittest.TestCase):
         progress_events = []
 
         class FakeProgress:
-            def __init__(self, *, total: int) -> None:
+            def __init__(self, *, total: int, use_color: bool = False) -> None:
                 progress_events.append(("total", total))
+                progress_events.append(("color", use_color))
 
             def __enter__(self) -> FakeProgress:
                 progress_events.append(("enter", None))
@@ -1664,9 +1693,18 @@ class ArchitectureTest(unittest.TestCase):
         output = stdout.getvalue()
         self.assertNotIn("RUN", output)
         self.assertIn(("total", 2), progress_events)
+        self.assertIn(("color", False), progress_events)
         self.assertIn(("start", "bleu+1/bench"), progress_events)
         self.assertTrue(any(event[0] == "print" and "bleu/bench" in event[1] for event in progress_events))
         self.assertEqual(progress_events.count(("update", None)), 2)
+
+    def test_all_reproduce_status_lines_are_always_colored(self) -> None:
+        progress = ReproduceProgress(total=1, use_color=False)
+        stderr = io.StringIO()
+        with contextlib.redirect_stderr(stderr):
+            progress.status("Downloading benchmark data")
+
+        self.assertIn("\033[33m  ⬇️ Downloading benchmark data\033[0m", stderr.getvalue())
 
     def test_all_reproduce_runs_grouped_reference_metric_once(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

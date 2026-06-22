@@ -12,7 +12,7 @@ from PIL import Image
 
 from capevalkit.shared.compat import zip_strict
 from capevalkit.infrastructure.runtime.paths import repo_root
-from capevalkit.infrastructure.execution.progress import progress_iter
+from capevalkit.infrastructure.execution.progress import progress_iter, progress_status
 
 
 def _load_rows(path: str) -> dict[str, dict[str, Any]]:
@@ -157,6 +157,7 @@ def compute(
     item_ids = sorted(predictions)
 
     model_name = llava.get_model_name_from_path(model_path)
+    progress_status(f"Loading FLEUR/LLaVA model {model_path}: first use may download Hugging Face assets")
     tokenizer, model, image_processor, _ = llava.load_pretrained_model(
         model_path=model_path,
         model_base=None,

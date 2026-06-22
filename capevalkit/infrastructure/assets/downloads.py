@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Literal
 from urllib.request import Request, urlopen
 
+from capevalkit.infrastructure.execution.progress import copy_with_download_progress, progress_status
 from capevalkit.infrastructure.runtime.environment import apply_runtime_environment
 from capevalkit.infrastructure.runtime.manager import RuntimeManager
 from capevalkit.infrastructure.runtime.paths import repo_root
@@ -137,7 +138,10 @@ def download_assets(
     assets = list(assets)
     project_root = root or repo_root()
     if root is None and not dry_run:
-        RuntimeManager().ensure_upstreams(upstreams_for_assets(assets))
+        upstreams = upstreams_for_assets(assets)
+        if upstreams:
+            progress_status(f"Preparing upstream repositories for assets: {', '.join(upstreams)}")
+        RuntimeManager().ensure_upstreams(upstreams)
     paths: list[Path] = []
     for asset in assets:
         if dry_run:
@@ -174,6 +178,7 @@ def download_asset(
 
     ready = _resolve_optional(project_root, asset.ready_path)
     if ready and ready.exists() and not force:
+        progress_status(f"Using cached asset {asset.name}: {ready}")
         return ready
 
     if asset.source_type == "url":
@@ -280,10 +285,11 @@ def _download_url_asset(
     opener = open_url or urlopen
     request = Request(asset.url, headers={"User-Agent": "Mozilla/5.0"})
     with opener(request) as response, tmp.open("wb") as output:  # type: ignore[attr-defined]
-        shutil.copyfileobj(response, output)
+        copy_with_download_progress(response, output, label=f"asset {asset.name}")
     tmp.replace(destination)
 
     if asset.extract_to:
+        progress_status(f"Extracting asset {asset.name}: {destination}")
         _extract_zip(destination, root / asset.extract_to)
         return _resolve_optional(root, asset.ready_path) or destination
     return destination
@@ -300,6 +306,7 @@ def _download_hf_file_asset(
         raise ValueError(f"{asset.name} must declare hf_repo and hf_filename")
 
     downloader = hf_hub_download or _import_hf_hub_download()
+    progress_status(f"Downloading Hugging Face asset {asset.name}: {asset.hf_repo}/{asset.hf_filename}")
     cached_path = Path(downloader(repo_id=asset.hf_repo, filename=asset.hf_filename))
     destination = _resolve_optional(root, asset.destination)
     if destination:
@@ -319,6 +326,7 @@ def _download_hf_snapshot_asset(
     if not asset.hf_repo:
         raise ValueError(f"{asset.name} must declare hf_repo")
     downloader = snapshot_download or _import_snapshot_download()
+    progress_status(f"Downloading Hugging Face snapshot asset {asset.name}: {asset.hf_repo}")
     return Path(downloader(repo_id=asset.hf_repo))
 
 

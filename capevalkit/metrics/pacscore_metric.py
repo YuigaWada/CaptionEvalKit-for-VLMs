@@ -11,7 +11,7 @@ from urllib.request import urlopen
 
 from capevalkit.shared.compat import zip_strict
 from capevalkit.infrastructure.runtime.paths import repo_root
-from capevalkit.infrastructure.execution.progress import progress_update
+from capevalkit.infrastructure.execution.progress import copy_with_download_progress, progress_status, progress_update
 
 
 def _pacscore_root() -> Path:
@@ -108,12 +108,9 @@ def _download_checkpoint(url: str, path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp_path = path.with_suffix(path.suffix + ".part")
     with urlopen(url, timeout=120) as response, tmp_path.open("wb") as handle:
-        while True:
-            chunk = response.read(1024 * 1024)
-            if not chunk:
-                break
-            handle.write(chunk)
+        copy_with_download_progress(response, handle, label=f"PACScore checkpoint {path.name}")
     tmp_path.replace(path)
+    progress_status(f"Cached PACScore checkpoint: {path}")
 
 
 def _ensure_clip_lora_tokenizer() -> None:
